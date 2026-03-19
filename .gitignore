@@ -46,3 +46,6 @@ CLAUDE.md
 /.claude/
 /.agents/
 
+#supabase
+supabase/.temp/
+
