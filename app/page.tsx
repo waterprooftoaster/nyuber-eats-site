@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { RestaurantCard } from '@/components/restaurant-card'
+import { Header } from '@/components/header'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -11,8 +12,9 @@ export default async function Home() {
     .limit(4)
 
   return (
-    <main className="min-h-screen bg-white p-8">
-      <div className="mx-auto grid max-w-5xl grid-cols-4 gap-5">
+    <main className="min-h-screen bg-white">
+      <Header />
+      <div className="mx-auto grid max-w-5xl grid-cols-4 gap-5 p-8">
         {(eateries ?? []).map((eatery) => (
           <RestaurantCard key={eatery.id} name={eatery.name} />
         ))}

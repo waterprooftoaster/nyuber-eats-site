@@ -49,3 +49,7 @@ CLAUDE.md
 #supabase
 supabase/.temp/
 
+
+#misc
+tests/
+
