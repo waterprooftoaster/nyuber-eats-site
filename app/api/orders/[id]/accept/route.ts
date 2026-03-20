@@ -1,0 +1,91 @@
+import { NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
+import { notifyOrderStatusChange } from '@/lib/twilio/notify'
+import type { Order } from '@/lib/types/database'
+
+export async function PATCH(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = await createClient()
+  const user = await getAuthenticatedUser(supabase)
+  if (!user) return apiError('Unauthorized', 401)
+
+  // Verify order exists and is pending
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, orderer_id, swiper_id, status')
+    .eq('id', id)
+    .single()
+
+  if (!order) return apiError('Order not found', 404)
+  if (order.status !== 'pending' || order.swiper_id !== null) {
+    return apiError('Order is no longer available', 409)
+  }
+  if (order.orderer_id === user.id) {
+    return apiError('Cannot accept your own order', 403)
+  }
+
+  // Verify swiper has completed Stripe onboarding
+  const { data: stripeAccount } = await supabase
+    .from('stripe_accounts')
+    .select('onboarding_complete')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!stripeAccount?.onboarding_complete) {
+    return apiError('Stripe onboarding must be completed first', 403)
+  }
+
+  // Verify swiper has selected a school
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('school_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.school_id) {
+    return apiError('You must select a school before accepting orders', 403)
+  }
+
+  // Atomic update — 0 rows means race condition lost
+  const { data: updated, error } = await supabase
+    .from('orders')
+    .update({ swiper_id: user.id, status: 'accepted' as const })
+    .eq('id', id)
+    .eq('status', 'pending')
+    .is('swiper_id', null)
+    .select(
+      'id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, created_at, updated_at'
+    )
+    .single()
+
+  if (error || !updated) {
+    return apiError('Order was already accepted by another swiper', 409)
+  }
+
+  // Create conversation for this order
+  const service = createServiceClient()
+  const { error: convError } = await service
+    .from('conversations')
+    .insert({
+      order_id: updated.id,
+      orderer_id: updated.orderer_id,
+      swiper_id: user.id,
+    })
+
+  // Handle re-acceptance after cancellation (unique violation on order_id)
+  if (convError?.code === '23505') {
+    await service
+      .from('conversations')
+      .update({ swiper_id: user.id })
+      .eq('order_id', updated.id)
+  }
+
+  void notifyOrderStatusChange(updated as Order, 'accepted')
+
+  return apiSuccess(updated)
+}
