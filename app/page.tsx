@@ -9,7 +9,6 @@ export default async function Home() {
     .from('eateries')
     .select('id, name')
     .eq('is_active', true)
-    .limit(4)
 
   return (
     <main className="min-h-screen bg-white">
