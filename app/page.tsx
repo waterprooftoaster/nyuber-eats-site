@@ -7,7 +7,7 @@ export default async function Home() {
 
   const { data: eateries } = await supabase
     .from('eateries')
-    .select('id, name')
+    .select('id, name, image_url')
     .eq('is_active', true)
 
   return (
@@ -15,7 +15,12 @@ export default async function Home() {
       <Header />
       <div className="mx-auto grid max-w-5xl grid-cols-4 gap-5 p-8">
         {(eateries ?? []).map((eatery) => (
-          <RestaurantCard key={eatery.id} name={eatery.name} />
+          <RestaurantCard
+            key={eatery.id}
+            id={eatery.id}
+            name={eatery.name}
+            imageUrl={eatery.image_url}
+          />
         ))}
       </div>
     </main>

@@ -9,6 +9,56 @@ export interface Profile {
   updated_at: string
 }
 
+export interface Eatery {
+  id: string
+  school_id: string
+  name: string
+  image_url: string | null
+  address: string
+  delivery_time_label: string | null
+  is_active: boolean
+  latitude: number | null
+  longitude: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MenuItem {
+  id: string
+  restaurant_id: string
+  name: string
+  original_price_cents: number
+  market_price_cents: number | null
+  image_url: string | null
+  is_available: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type SelectionType = 'single' | 'multiple'
+
+export interface MenuItemOptionGroup {
+  id: string
+  menu_item_id: string
+  name: string
+  selection_type: SelectionType
+  is_required: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface MenuItemOption {
+  id: string
+  option_group_id: string
+  name: string
+  additional_price_cents: number
+  is_default: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 export type OrderStatus =
   | 'pending'
   | 'accepted'
@@ -61,4 +111,22 @@ export interface StripeAccount {
   stripe_account_id: string
   onboarding_complete: boolean
   created_at: string
+}
+
+export interface Cart {
+  id: string
+  user_id: string | null
+  session_id: string | null
+  eatery_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CartItem {
+  id: string
+  cart_id: string
+  menu_item_id: string
+  quantity: number
+  selected_options: string[]
+  added_at: string
 }
