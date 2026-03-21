@@ -6,8 +6,12 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const USERNAME_REGEX = /^[a-zA-Z0-9_.\-]+$/
 
-type ActionState = { error: string } | null
+type ActionState =
+  | { error: string }
+  | { needsOnboarding: true; email: string }
+  | null
 
 export async function signIn(
   _prevState: ActionState,
@@ -102,6 +106,7 @@ export async function authenticate(
   const supabase = await createClient()
 
   if (confirmPassword) {
+    // Sign-up flow
     if (password.length < 6) {
       return { error: 'Password must be at least 6 characters.' }
     }
@@ -109,15 +114,76 @@ export async function authenticate(
       return { error: 'Passwords do not match.' }
     }
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
       return { error: error.message }
     }
-  } else {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      return { error: 'Invalid email or password.' }
+
+    // New user always needs onboarding — no profile can exist yet
+    return { needsOnboarding: true, email: data.user?.email ?? email }
+  }
+
+  // Sign-in flow
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) {
+    return { error: 'Invalid email or password.' }
+  }
+
+  // Check if returning user has a profile
+  if (data.user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', data.user.id)
+      .single()
+
+    if (!profile) {
+      return { needsOnboarding: true, email: data.user.email ?? email }
     }
+  }
+
+  redirect('/')
+}
+
+export async function completeOnboarding(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const username = (formData.get('username') as string)?.trim()
+  const schoolId = formData.get('school_id') as string | null
+
+  if (!username || username.length < 1 || username.length > 50) {
+    return { error: 'Username must be between 1 and 50 characters.' }
+  }
+  if (!USERNAME_REGEX.test(username)) {
+    return { error: 'Username may only contain letters, numbers, underscores, hyphens, and periods.' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Not authenticated.' }
+  }
+
+  if (!user.email) {
+    return { error: 'Your account does not have an email address.' }
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .insert({
+      id: user.id,
+      username,
+      email: user.email,
+      school_id: schoolId || null,
+    })
+
+  if (error) {
+    if (error.code === '23505' && error.details?.includes('username')) {
+      return { error: 'That username is already taken.' }
+    }
+    return { error: 'Could not create profile. Please try again.' }
   }
 
   redirect('/')

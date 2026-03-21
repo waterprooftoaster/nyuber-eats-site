@@ -1,3 +1,14 @@
+export interface Profile {
+  id: string
+  username: string
+  email: string
+  school_id: string | null
+  avatar_url: string | null
+  phone: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type OrderStatus =
   | 'pending'
   | 'accepted'

@@ -32,10 +32,10 @@ async function getDisplayName(userId: string): Promise<string> {
   const supabase = createServiceClient()
   const { data } = await supabase
     .from('profiles')
-    .select('display_name')
+    .select('username')
     .eq('id', userId)
     .single()
-  return data?.display_name ?? 'Someone'
+  return data?.username ?? 'Someone'
 }
 
 const NOTIFIABLE_STATUSES: Set<OrderStatus> = new Set([
