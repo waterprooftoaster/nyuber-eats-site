@@ -1,15 +1,54 @@
 'use client'
 
-import { useActionState, useState } from 'react'
-import { authenticate, signInWithGoogle } from '@/app/auth/actions'
+import { useActionState, useEffect, useState } from 'react'
+import { authenticate, signInWithGoogle, completeOnboarding } from '@/app/auth/actions'
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+} from '@/components/ui/combobox'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function LoginForm({ callbackError }: { callbackError?: string }) {
-  const [step, setStep] = useState<'email' | 'password'>('email')
-  const [email, setEmail] = useState('')
+interface School {
+  id: string
+  name: string
+}
+
+export function LoginForm({
+  callbackError,
+  schools,
+  initialOnboarding,
+  userEmail,
+}: {
+  callbackError?: string
+  schools: School[]
+  initialOnboarding?: boolean
+  userEmail?: string
+}) {
+  const [step, setStep] = useState<'email' | 'password' | 'onboarding'>(
+    initialOnboarding ? 'onboarding' : 'email',
+  )
+  const [email, setEmail] = useState(userEmail ?? '')
   const [emailError, setEmailError] = useState('')
-  const [state, formAction, pending] = useActionState(authenticate, null)
+  const [selectedSchool, setSelectedSchool] = useState<{ value: string; label: string } | null>(null)
+
+  const [authState, formAction, authPending] = useActionState(authenticate, null)
+  const [onboardingState, onboardingAction, onboardingPending] = useActionState(
+    completeOnboarding,
+    null,
+  )
+
+  // Transition to onboarding when authenticate signals it
+  useEffect(() => {
+    if (authState && 'needsOnboarding' in authState) {
+      setEmail(authState.email)
+      setStep('onboarding')
+    }
+  }, [authState])
 
   const inputStyle =
     'block w-full h-12 rounded-md border border-gray-300 px-3 py-2 focus:border-black focus:outline-none focus:ring-1 focus:ring-black'
@@ -23,17 +62,18 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
     setStep('password')
   }
 
-  const error = state?.error ?? callbackError
+  const error =
+    (authState && 'error' in authState ? authState.error : null) ?? callbackError
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-white pb-24">
       <div className="w-full max-w-sm space-y-4 p-8">
-        {error && (step === 'password' || callbackError) && (
-          <p className="text-sm text-red-600 text-center">{error}</p>
-        )}
-
-        {step === 'email' ? (
+        {step === 'email' && (
           <>
+            {callbackError && (
+              <p className="text-sm text-red-600 text-center">{callbackError}</p>
+            )}
+
             <div>
               <input
                 type="email"
@@ -70,8 +110,14 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
               </button>
             </form>
           </>
-        ) : (
+        )}
+
+        {step === 'password' && (
           <>
+            {error && (
+              <p className="text-sm text-red-600 text-center">{error}</p>
+            )}
+
             <button
               type="button"
               onClick={() => setStep('email')}
@@ -106,10 +152,81 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
 
               <button
                 type="submit"
-                disabled={pending}
+                disabled={authPending}
                 className="w-full h-12 rounded-md bg-black text-white hover:bg-gray-800 disabled:opacity-50"
               >
-                {pending ? '...' : 'Submit'}
+                {authPending ? '...' : 'Submit'}
+              </button>
+            </form>
+          </>
+        )}
+
+        {step === 'onboarding' && (
+          <>
+            {onboardingState && 'error' in onboardingState && (
+              <p className="text-sm text-red-600 text-center">
+                {onboardingState.error}
+              </p>
+            )}
+
+            <form action={onboardingAction} className="space-y-6">
+              <div className="space-y-2">
+                <p className="text-base font-medium text-gray-900">
+                  What should we call you?
+                </p>
+                <input
+                  name="username"
+                  type="text"
+                  placeholder="Username"
+                  required
+                  maxLength={50}
+                  pattern="[a-zA-Z0-9_.\-]+"
+                  title="Letters, numbers, underscores, hyphens, and periods only"
+                  className={inputStyle}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-base font-medium text-gray-900">
+                  What school do you go to?
+                </p>
+                <p className="text-sm text-gray-400">
+                  don't worry, you can leave this blank
+                </p>
+                <Combobox
+                  value={selectedSchool}
+                  onValueChange={(value) =>
+                    setSelectedSchool(value as { value: string; label: string } | null)
+                  }
+                  isItemEqualToValue={(a, b) => a.value === b.value}
+                >
+                  <ComboboxInput
+                    placeholder="Search schools..."
+                    className="h-12 rounded-md border-gray-300 focus:border-black focus:ring-1 focus:ring-black"
+                  />
+                  <ComboboxContent>
+                    <ComboboxList>
+                      {schools.map((school) => (
+                        <ComboboxItem
+                          key={school.id}
+                          value={{ value: school.id, label: school.name }}
+                        >
+                          {school.name}
+                        </ComboboxItem>
+                      ))}
+                      <ComboboxEmpty>No schools found</ComboboxEmpty>
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+                <input type="hidden" name="school_id" value={selectedSchool?.value ?? ''} />
+              </div>
+
+              <button
+                type="submit"
+                disabled={onboardingPending}
+                className="w-full h-12 rounded-md bg-black text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                {onboardingPending ? '...' : 'Get Started'}
               </button>
             </form>
           </>
