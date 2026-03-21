@@ -1,4 +1,22 @@
 import { defineConfig, devices } from '@playwright/test'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+// Load .env.local so Supabase credentials are available in test files
+try {
+  const envFile = readFileSync(resolve(__dirname, '.env.local'), 'utf-8')
+  for (const line of envFile.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const eqIdx = trimmed.indexOf('=')
+    if (eqIdx === -1) continue
+    const key = trimmed.slice(0, eqIdx).trim()
+    const value = trimmed.slice(eqIdx + 1).trim()
+    if (!process.env[key]) process.env[key] = value
+  }
+} catch {
+  // .env.local not found — assume env vars are already set
+}
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -11,8 +29,22 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /authenticated/,
+    },
+    {
+      name: 'authenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/user.json',
+      },
+      dependencies: ['setup'],
+      testDir: './tests/e2e/authenticated',
     },
   ],
   webServer: {

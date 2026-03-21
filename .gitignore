@@ -42,7 +42,6 @@ next-env.d.ts
 
 #ai
 AGENTS.md
-CLAUDE.md
 /.claude/
 /.agents/
 
@@ -50,6 +49,7 @@ CLAUDE.md
 supabase/.temp/
 
 
-#misc
-tests/
-
+#playwright
+/test-results/
+/playwright-report/
+/.auth/
