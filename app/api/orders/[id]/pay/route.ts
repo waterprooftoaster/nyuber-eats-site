@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getStripe } from '@/lib/stripe/client'
-import { createPaymentIntent, PLATFORM_FEE_RATE } from '@/lib/stripe/checkout'
+import { createPaymentIntent, PLATFORM_FEE_CENTS } from '@/lib/stripe/checkout'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
 
 export async function POST(
@@ -77,7 +77,7 @@ export async function POST(
     payerEmail: user.email,
   })
 
-  const platformFee = Math.round(order.total_cents * PLATFORM_FEE_RATE)
+  const platformFee = PLATFORM_FEE_CENTS
 
   const { error: paymentError } = await serviceClient
     .from('payments')

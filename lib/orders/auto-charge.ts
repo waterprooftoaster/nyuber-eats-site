@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { createServiceClient } from '@/lib/supabase/service'
-import { createPaymentIntent, PLATFORM_FEE_RATE } from '@/lib/stripe/checkout'
+import { createPaymentIntent, PLATFORM_FEE_CENTS } from '@/lib/stripe/checkout'
 import type { Order } from '@/lib/types/database'
 
 export async function autoChargeGuestOrder(order: Order) {
@@ -41,7 +41,7 @@ export async function autoChargeGuestOrder(order: Order) {
       paymentMethodId: order.guest_stripe_pm_id,
     })
 
-    const platformFee = Math.round(order.total_cents * PLATFORM_FEE_RATE)
+    const platformFee = PLATFORM_FEE_CENTS
 
     await serviceClient.from('payments').insert({
       order_id: order.id,

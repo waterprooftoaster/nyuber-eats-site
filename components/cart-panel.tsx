@@ -17,15 +17,7 @@ export function CartPanel({ initialCart }: Props) {
   const [cart, setCart] = useState<LoadedCart | null>(initialCart)
   const [removing, setRemoving] = useState<string | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
-  const [checkoutMsg, setCheckoutMsg] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    }
-  }, [])
 
   // Slide-in animation on mount
   useEffect(() => {
@@ -57,12 +49,6 @@ export function CartPanel({ initialCart }: Props) {
     } finally {
       setRemoving(null)
     }
-  }
-
-  function handleCheckout() {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-    setCheckoutMsg(true)
-    toastTimerRef.current = setTimeout(() => setCheckoutMsg(false), 3000)
   }
 
   return (
@@ -148,21 +134,12 @@ export function CartPanel({ initialCart }: Props) {
         {/* Checkout button */}
         {cart && cart.items.length > 0 && (
           <div className="border-t border-gray-100 p-4">
-            {checkoutMsg && (
-              <p
-                data-testid="checkout-toast"
-                className="mb-2 text-center text-xs text-gray-500"
-              >
-                Checkout coming soon
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={handleCheckout}
-              className="w-full rounded-none bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
+            <Link
+              href="/checkout"
+              className="block w-full rounded-none bg-black py-3 text-center text-sm font-semibold text-white hover:bg-gray-900"
             >
               Checkout
-            </button>
+            </Link>
           </div>
         )}
       </div>
