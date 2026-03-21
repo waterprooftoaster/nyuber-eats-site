@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getStripe } from '@/lib/stripe/client'
+import { createClient } from '@/lib/supabase/server'
 
 interface Props {
   searchParams: Promise<{ session_id?: string }>
@@ -45,6 +46,24 @@ export default async function CheckoutReturnPage({ searchParams }: Props) {
   let status: string | null = null
   try {
     const session = await getStripe().checkout.sessions.retrieve(session_id)
+
+    // H-2: For authenticated users, verify the session belongs to their order
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const orderId = session.metadata?.order_id
+      if (orderId) {
+        const { data: order } = await supabase
+          .from('orders')
+          .select('orderer_id')
+          .eq('id', orderId)
+          .single()
+        if (!order || order.orderer_id !== user.id) {
+          return <FailurePage message="Payment session not found." href="/checkout" />
+        }
+      }
+    }
+
     status = session.status
   } catch {
     return <FailurePage message="Could not verify payment status. Please try again." href="/checkout" />

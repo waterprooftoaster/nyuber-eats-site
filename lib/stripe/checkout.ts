@@ -22,19 +22,23 @@ export async function createPaymentIntent({
   const totalAmount = amountCents + tipCents
   const platformFee = PLATFORM_FEE_CENTS
 
-  return getStripe().paymentIntents.create({
-    amount: totalAmount,
-    currency: 'usd',
-    application_fee_amount: platformFee,
-    transfer_data: {
-      destination: stripeConnectedAccountId,
+  return getStripe().paymentIntents.create(
+    {
+      amount: totalAmount,
+      currency: 'usd',
+      application_fee_amount: platformFee,
+      transfer_data: {
+        destination: stripeConnectedAccountId,
+      },
+      metadata: { order_id: orderId },
+      ...(payerEmail && { receipt_email: payerEmail }),
+      ...(paymentMethodId && {
+        payment_method: paymentMethodId,
+        confirm: true,
+        off_session: true,
+      }),
     },
-    metadata: { order_id: orderId },
-    ...(payerEmail && { receipt_email: payerEmail }),
-    ...(paymentMethodId && {
-      payment_method: paymentMethodId,
-      confirm: true,
-      off_session: true,
-    }),
-  })
+    // C-3: Idempotency key prevents duplicate PIs on network retries
+    { idempotencyKey: `pi-${orderId}` }
+  )
 }

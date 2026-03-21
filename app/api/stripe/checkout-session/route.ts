@@ -9,14 +9,18 @@ import { apiError, apiSuccess, getAuthenticatedUser, CART_SESSION_COOKIE } from 
 import type Stripe from 'stripe'
 
 const checkoutBodySchema = z.object({
+  // M-2: Tip validated further server-side against order total (see below)
   tip_cents: z.number().int().min(0).max(10000).optional(),
-  special_instructions: z.string().max(500).optional(),
-  guest_name: z.string().min(1).max(100).optional(),
+  special_instructions: z.string().trim().max(500).optional(),
+  guest_name: z.string().trim().min(1).max(100).optional(),
   guest_phone: z
     .string()
     .regex(/^\+?[0-9\s\-().]{7,20}$/)
     .optional(),
 })
+
+// M-1: Guest session cookie must be a v4 UUID
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
@@ -43,6 +47,8 @@ export async function POST(request: NextRequest) {
   } else {
     const sessionId = cookieStore.get(CART_SESSION_COOKIE)?.value
     if (!sessionId) return apiError('No cart found', 400)
+    // M-1: Reject malformed session cookies before hitting the DB
+    if (!UUID_RE.test(sessionId)) return apiError('Invalid session', 400)
     const { data } = await service
       .from('carts')
       .select('id, eatery_id')
@@ -69,7 +75,8 @@ export async function POST(request: NextRequest) {
     (sum, item) => sum + item.quantity * ITEM_PRICE_CENTS,
     0
   )
-  const tipCents = tip_cents ?? 0
+  // M-2: Cap tip to order subtotal — prevents $100 tip on a $7 meal
+  const tipCents = Math.min(tip_cents ?? 0, totalItemCents)
   const totalCents = totalItemCents + tipCents
 
   const orderItems = loaded.items.map((item) => ({
@@ -102,7 +109,13 @@ export async function POST(request: NextRequest) {
 
   // Create Stripe Checkout Session (embedded mode)
   // If Stripe fails, clean up the orphaned order row
-  const returnUrl = `${process.env.NEXT_PUBLIC_URL}/checkout/return?session_id={CHECKOUT_SESSION_ID}`
+  // H-1: Validate NEXT_PUBLIC_URL is set and looks like a real URL
+  const appUrl = process.env.NEXT_PUBLIC_URL
+  if (!appUrl || !appUrl.startsWith('http')) {
+    await service.from('orders').delete().eq('id', order.id)
+    return apiError('Server configuration error', 500)
+  }
+  const returnUrl = `${appUrl}/checkout/return?session_id={CHECKOUT_SESSION_ID}`
 
   let session: Stripe.Checkout.Session
   try {

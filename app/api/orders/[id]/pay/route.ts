@@ -43,13 +43,18 @@ export async function POST(
     .maybeSingle()
 
   if (existingPayment) {
-    const pi = await getStripe().paymentIntents.retrieve(
-      existingPayment.stripe_payment_intent_id
-    )
-    return apiSuccess({
-      clientSecret: pi.client_secret,
-      paymentIntentId: pi.id,
-    })
+    // L-3: Wrap retrieve in try/catch — uncaught exception would leak a stack trace
+    try {
+      const pi = await getStripe().paymentIntents.retrieve(
+        existingPayment.stripe_payment_intent_id
+      )
+      return apiSuccess({
+        clientSecret: pi.client_secret,
+        paymentIntentId: pi.id,
+      })
+    } catch {
+      return apiError('Failed to retrieve existing payment', 500)
+    }
   }
 
   // Get swiper's Stripe account — verify onboarding is complete

@@ -9,9 +9,10 @@ export async function POST() {
   if (!user.email) return apiError('Account must have an email address', 400)
 
   // Check for existing account
+  // M-5: select specific columns — don't expose raw stripe_account_id to client
   const { data: existing } = await supabase
     .from('stripe_accounts')
-    .select('*')
+    .select('user_id, onboarding_complete, created_at')
     .eq('user_id', user.id)
     .single()
 
@@ -32,7 +33,7 @@ export async function POST() {
   if (error?.code === '23505') {
     const { data: raceWinner } = await supabase
       .from('stripe_accounts')
-      .select('*')
+      .select('user_id, onboarding_complete, created_at')
       .eq('user_id', user.id)
       .single()
     if (raceWinner) return apiSuccess(raceWinner)
