@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   const menuItemIds = items.map((i) => i.menu_item_id)
   const { data: menuItems } = await dbClient
     .from('menu_items')
-    .select('id, name, price_cents')
+    .select('id, name, original_price_cents, market_price_cents')
     .in('id', menuItemIds)
     .eq('restaurant_id', eatery_id)
     .eq('is_available', true)
@@ -66,13 +66,14 @@ export async function POST(request: NextRequest) {
   for (const item of items) {
     const mi = menuItemMap.get(item.menu_item_id)
     if (!mi) return apiError('Menu item not found', 400)
+    const effectivePrice = mi.market_price_cents ?? mi.original_price_cents
     orderItems.push({
       menu_item_id: mi.id,
       name: mi.name,
-      price_cents: mi.price_cents,
+      price_cents: effectivePrice,
       quantity: item.quantity,
     })
-    totalCents += mi.price_cents * item.quantity
+    totalCents += effectivePrice * item.quantity
   }
 
   const insertPayload = {

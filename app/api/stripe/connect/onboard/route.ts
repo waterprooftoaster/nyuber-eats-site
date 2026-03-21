@@ -18,11 +18,13 @@ export async function GET(request: NextRequest) {
     return apiError('No Stripe account found. Create one first.', 404)
   }
 
-  const origin = request.nextUrl.origin
+  // H-3: Use env var, not request origin — Host header is attacker-controlled
+  const appUrl = process.env.NEXT_PUBLIC_URL
+  if (!appUrl) return apiError('Server configuration error', 500)
   const link = await createOnboardingLink(
     stripeAccount.stripe_account_id,
-    `${origin}/stripe/onboard/complete`,
-    `${origin}/stripe/onboard/refresh`
+    `${appUrl}/stripe/onboard/complete`,
+    `${appUrl}/stripe/onboard/refresh`
   )
 
   return apiSuccess({ url: link.url })

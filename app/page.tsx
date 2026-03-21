@@ -1,21 +1,34 @@
 import { createClient } from '@/lib/supabase/server'
 import { RestaurantCard } from '@/components/restaurant-card'
-import { Header } from '@/components/header'
+import { seedDevEateries } from '@/lib/dev-seed'
 
 export default async function Home() {
   const supabase = await createClient()
 
-  const { data: eateries } = await supabase
+  let { data: eateries } = await supabase
     .from('eateries')
-    .select('id, name')
+    .select('id, name, image_url')
     .eq('is_active', true)
+
+  if (process.env.NODE_ENV === 'development' && (!eateries || eateries.length === 0)) {
+    await seedDevEateries()
+    const { data: seeded } = await supabase
+      .from('eateries')
+      .select('id, name, image_url')
+      .eq('is_active', true)
+    eateries = seeded
+  }
 
   return (
     <main className="min-h-screen bg-white">
-      <Header />
-      <div className="mx-auto grid max-w-5xl grid-cols-4 gap-5 p-8">
+      <div className="grid grid-cols-5 gap-5 p-8">
         {(eateries ?? []).map((eatery) => (
-          <RestaurantCard key={eatery.id} name={eatery.name} />
+          <RestaurantCard
+            key={eatery.id}
+            id={eatery.id}
+            name={eatery.name}
+            imageUrl={eatery.image_url}
+          />
         ))}
       </div>
     </main>

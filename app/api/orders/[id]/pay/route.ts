@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getStripe } from '@/lib/stripe/client'
-import { createPaymentIntent, PLATFORM_FEE_RATE } from '@/lib/stripe/checkout'
+import { createPaymentIntent, PLATFORM_FEE_CENTS } from '@/lib/stripe/checkout'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
 
 export async function POST(
@@ -43,13 +43,18 @@ export async function POST(
     .maybeSingle()
 
   if (existingPayment) {
-    const pi = await getStripe().paymentIntents.retrieve(
-      existingPayment.stripe_payment_intent_id
-    )
-    return apiSuccess({
-      clientSecret: pi.client_secret,
-      paymentIntentId: pi.id,
-    })
+    // L-3: Wrap retrieve in try/catch — uncaught exception would leak a stack trace
+    try {
+      const pi = await getStripe().paymentIntents.retrieve(
+        existingPayment.stripe_payment_intent_id
+      )
+      return apiSuccess({
+        clientSecret: pi.client_secret,
+        paymentIntentId: pi.id,
+      })
+    } catch {
+      return apiError('Failed to retrieve existing payment', 500)
+    }
   }
 
   // Get swiper's Stripe account — verify onboarding is complete
@@ -77,7 +82,7 @@ export async function POST(
     payerEmail: user.email,
   })
 
-  const platformFee = Math.round(order.total_cents * PLATFORM_FEE_RATE)
+  const platformFee = PLATFORM_FEE_CENTS
 
   const { error: paymentError } = await serviceClient
     .from('payments')
