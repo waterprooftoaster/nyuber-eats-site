@@ -44,3 +44,10 @@ export const sendMessageSchema = z.object({
 })
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>
+
+export const addCartItemSchema = z.object({
+  menu_item_id: z.string().uuid(),
+  selected_options: z.array(z.string().uuid()).max(50).default([]),
+})
+
+export type AddCartItemInput = z.infer<typeof addCartItemSchema>

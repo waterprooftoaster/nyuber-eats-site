@@ -27,8 +27,9 @@ export default async function Home() {
         {(eateries ?? []).map((eatery) => (
           <RestaurantCard
             key={eatery.id}
+            id={eatery.id}
             name={eatery.name}
-            image_url={eatery.image_url}
+            imageUrl={eatery.image_url}
           />
         ))}
       </div>

@@ -30,15 +30,348 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 const SCHOOL = { name: 'NYU', slug: 'nyu' }
 
-const EATERY_NAMES = [
-  { name: "Joe's Pizza", address: '7 Carmine St, New York, NY 10014' },
-  { name: 'Sushi Palace', address: '100 W 4th St, New York, NY 10012' },
-  { name: 'Burger Barn', address: '55 W 8th St, New York, NY 10011' },
-  { name: 'Taco Fiesta', address: '200 Mercer St, New York, NY 10012' },
+interface OptionData {
+  name: string
+  additional_price_cents: number
+  is_default: boolean
+  sort_order: number
+}
+
+interface OptionGroupData {
+  name: string
+  selection_type: 'single' | 'multiple'
+  is_required: boolean
+  sort_order: number
+  options: OptionData[]
+}
+
+interface MenuItemData {
+  name: string
+  original_price_cents: number
+  market_price_cents: number | null
+  image_url: string
+  option_groups: OptionGroupData[]
+}
+
+interface EateryData {
+  name: string
+  address: string
+  image_url: string
+  menu_items: MenuItemData[]
+}
+
+const EATERIES: EateryData[] = [
+  {
+    name: "Joe's Pizza",
+    address: '7 Carmine St, New York, NY 10014',
+    image_url: 'https://picsum.photos/seed/joes-pizza/1200/500',
+    menu_items: [
+      {
+        name: 'Margherita Pizza',
+        original_price_cents: 1200,
+        market_price_cents: 1000,
+        image_url: 'https://picsum.photos/seed/margherita/400/400',
+        option_groups: [
+          {
+            name: 'Size',
+            selection_type: 'single',
+            is_required: true,
+            sort_order: 0,
+            options: [
+              { name: 'Small', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Medium', additional_price_cents: 200, is_default: false, sort_order: 1 },
+              { name: 'Large', additional_price_cents: 400, is_default: false, sort_order: 2 },
+            ],
+          },
+          {
+            name: 'Toppings',
+            selection_type: 'multiple',
+            is_required: false,
+            sort_order: 1,
+            options: [
+              { name: 'Extra Cheese', additional_price_cents: 150, is_default: false, sort_order: 0 },
+              { name: 'Fresh Basil', additional_price_cents: 50, is_default: false, sort_order: 1 },
+              { name: 'Chili Flakes', additional_price_cents: 0, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Pepperoni Pizza',
+        original_price_cents: 1400,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/pepperoni/400/400',
+        option_groups: [
+          {
+            name: 'Size',
+            selection_type: 'single',
+            is_required: true,
+            sort_order: 0,
+            options: [
+              { name: 'Small', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Medium', additional_price_cents: 200, is_default: false, sort_order: 1 },
+              { name: 'Large', additional_price_cents: 400, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Caesar Salad',
+        original_price_cents: 800,
+        market_price_cents: 650,
+        image_url: 'https://picsum.photos/seed/caesar-salad/400/400',
+        option_groups: [],
+      },
+      {
+        name: 'Garlic Bread',
+        original_price_cents: 400,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/garlic-bread/400/400',
+        option_groups: [],
+      },
+      {
+        name: 'Tiramisu',
+        original_price_cents: 700,
+        market_price_cents: 550,
+        image_url: 'https://picsum.photos/seed/tiramisu/400/400',
+        option_groups: [],
+      },
+    ],
+  },
+  {
+    name: 'Sushi Palace',
+    address: '100 W 4th St, New York, NY 10012',
+    image_url: 'https://picsum.photos/seed/sushi-palace/1200/500',
+    menu_items: [
+      {
+        name: 'California Roll',
+        original_price_cents: 900,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/california-roll/400/400',
+        option_groups: [],
+      },
+      {
+        name: 'Salmon Sashimi',
+        original_price_cents: 1500,
+        market_price_cents: 1200,
+        image_url: 'https://picsum.photos/seed/salmon-sashimi/400/400',
+        option_groups: [],
+      },
+      {
+        name: 'Ramen',
+        original_price_cents: 1300,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/ramen/400/400',
+        option_groups: [
+          {
+            name: 'Broth',
+            selection_type: 'single',
+            is_required: true,
+            sort_order: 0,
+            options: [
+              { name: 'Tonkotsu', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Shoyu', additional_price_cents: 0, is_default: false, sort_order: 1 },
+              { name: 'Miso', additional_price_cents: 0, is_default: false, sort_order: 2 },
+            ],
+          },
+          {
+            name: 'Add-ons',
+            selection_type: 'multiple',
+            is_required: false,
+            sort_order: 1,
+            options: [
+              { name: 'Soft Boiled Egg', additional_price_cents: 100, is_default: false, sort_order: 0 },
+              { name: 'Bamboo Shoots', additional_price_cents: 75, is_default: false, sort_order: 1 },
+              { name: 'Extra Noodles', additional_price_cents: 150, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Edamame',
+        original_price_cents: 500,
+        market_price_cents: 350,
+        image_url: 'https://picsum.photos/seed/edamame/400/400',
+        option_groups: [],
+      },
+      {
+        name: 'Miso Soup',
+        original_price_cents: 300,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/miso-soup/400/400',
+        option_groups: [],
+      },
+    ],
+  },
+  {
+    name: 'Burger Barn',
+    address: '55 W 8th St, New York, NY 10011',
+    image_url: 'https://picsum.photos/seed/burger-barn/1200/500',
+    menu_items: [
+      {
+        name: 'Classic Burger',
+        original_price_cents: 1100,
+        market_price_cents: 900,
+        image_url: 'https://picsum.photos/seed/classic-burger/400/400',
+        option_groups: [
+          {
+            name: 'Patty',
+            selection_type: 'single',
+            is_required: true,
+            sort_order: 0,
+            options: [
+              { name: 'Single', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Double', additional_price_cents: 300, is_default: false, sort_order: 1 },
+            ],
+          },
+          {
+            name: 'Toppings',
+            selection_type: 'multiple',
+            is_required: false,
+            sort_order: 1,
+            options: [
+              { name: 'Bacon', additional_price_cents: 200, is_default: false, sort_order: 0 },
+              { name: 'Avocado', additional_price_cents: 150, is_default: false, sort_order: 1 },
+              { name: 'Fried Egg', additional_price_cents: 100, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Veggie Burger',
+        original_price_cents: 1000,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/veggie-burger/400/400',
+        option_groups: [],
+      },
+      {
+        name: 'Fries',
+        original_price_cents: 400,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/fries/400/400',
+        option_groups: [
+          {
+            name: 'Size',
+            selection_type: 'single',
+            is_required: true,
+            sort_order: 0,
+            options: [
+              { name: 'Small', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Large', additional_price_cents: 150, is_default: false, sort_order: 1 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Milkshake',
+        original_price_cents: 600,
+        market_price_cents: 500,
+        image_url: 'https://picsum.photos/seed/milkshake/400/400',
+        option_groups: [
+          {
+            name: 'Flavor',
+            selection_type: 'single',
+            is_required: true,
+            sort_order: 0,
+            options: [
+              { name: 'Vanilla', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Chocolate', additional_price_cents: 0, is_default: false, sort_order: 1 },
+              { name: 'Strawberry', additional_price_cents: 0, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Onion Rings',
+        original_price_cents: 450,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/onion-rings/400/400',
+        option_groups: [],
+      },
+    ],
+  },
+  {
+    name: 'Taco Fiesta',
+    address: '200 Mercer St, New York, NY 10012',
+    image_url: 'https://picsum.photos/seed/taco-fiesta/1200/500',
+    menu_items: [
+      {
+        name: 'Chicken Taco',
+        original_price_cents: 400,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/chicken-taco/400/400',
+        option_groups: [
+          {
+            name: 'Salsa',
+            selection_type: 'single',
+            is_required: false,
+            sort_order: 0,
+            options: [
+              { name: 'Mild', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Medium', additional_price_cents: 0, is_default: false, sort_order: 1 },
+              { name: 'Hot', additional_price_cents: 0, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Beef Burrito',
+        original_price_cents: 1000,
+        market_price_cents: 800,
+        image_url: 'https://picsum.photos/seed/beef-burrito/400/400',
+        option_groups: [
+          {
+            name: 'Add-ons',
+            selection_type: 'multiple',
+            is_required: false,
+            sort_order: 0,
+            options: [
+              { name: 'Guacamole', additional_price_cents: 150, is_default: false, sort_order: 0 },
+              { name: 'Sour Cream', additional_price_cents: 75, is_default: false, sort_order: 1 },
+              { name: 'Jalapeños', additional_price_cents: 0, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Quesadilla',
+        original_price_cents: 800,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/quesadilla/400/400',
+        option_groups: [
+          {
+            name: 'Protein',
+            selection_type: 'single',
+            is_required: true,
+            sort_order: 0,
+            options: [
+              { name: 'Chicken', additional_price_cents: 0, is_default: true, sort_order: 0 },
+              { name: 'Beef', additional_price_cents: 100, is_default: false, sort_order: 1 },
+              { name: 'Veggie', additional_price_cents: 0, is_default: false, sort_order: 2 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Nachos',
+        original_price_cents: 900,
+        market_price_cents: 750,
+        image_url: 'https://picsum.photos/seed/nachos/400/400',
+        option_groups: [],
+      },
+      {
+        name: 'Churros',
+        original_price_cents: 500,
+        market_price_cents: null,
+        image_url: 'https://picsum.photos/seed/churros/400/400',
+        option_groups: [],
+      },
+    ],
+  },
 ]
 
 async function seed() {
-  // Upsert school (idempotent on slug)
+  // Upsert school
   const { data: school, error: schoolError } = await supabase
     .from('schools')
     .upsert(SCHOOL, { onConflict: 'slug' })
@@ -49,44 +382,124 @@ async function seed() {
     console.error('Error upserting school:', schoolError)
     process.exit(1)
   }
-
   console.log(`School "${SCHOOL.name}" ready (id: ${school.id})`)
 
-  // Check which eateries already exist for this school
-  const { data: existing, error: fetchError } = await supabase
-    .from('eateries')
-    .select('name')
-    .eq('school_id', school.id)
+  for (const eateryData of EATERIES) {
+    // Upsert eatery (by name + school_id, with image_url)
+    const { data: existing } = await supabase
+      .from('eateries')
+      .select('id')
+      .eq('school_id', school.id)
+      .eq('name', eateryData.name)
+      .maybeSingle()
 
-  if (fetchError) {
-    console.error('Error fetching existing eateries:', fetchError)
-    process.exit(1)
+    let eateryId: string
+
+    if (existing) {
+      // Update image_url on existing eatery
+      const { error } = await supabase
+        .from('eateries')
+        .update({ image_url: eateryData.image_url })
+        .eq('id', existing.id)
+      if (error) {
+        console.error(`Error updating eatery "${eateryData.name}":`, error)
+        process.exit(1)
+      }
+      eateryId = existing.id
+      console.log(`Eatery "${eateryData.name}" updated (id: ${eateryId})`)
+    } else {
+      const { data: inserted, error } = await supabase
+        .from('eateries')
+        .insert({
+          name: eateryData.name,
+          address: eateryData.address,
+          image_url: eateryData.image_url,
+          school_id: school.id,
+          is_active: true,
+        })
+        .select('id')
+        .single()
+      if (error || !inserted) {
+        console.error(`Error inserting eatery "${eateryData.name}":`, error)
+        process.exit(1)
+      }
+      eateryId = inserted.id
+      console.log(`Eatery "${eateryData.name}" inserted (id: ${eateryId})`)
+    }
+
+    // Delete all existing menu items for this eatery (cascades to option groups/options)
+    const { error: deleteError } = await supabase
+      .from('menu_items')
+      .delete()
+      .eq('restaurant_id', eateryId)
+
+    if (deleteError) {
+      console.error(`Error clearing menu items for "${eateryData.name}":`, deleteError)
+      process.exit(1)
+    }
+
+    // Insert menu items
+    for (const itemData of eateryData.menu_items) {
+      const { data: menuItem, error: itemError } = await supabase
+        .from('menu_items')
+        .insert({
+          restaurant_id: eateryId,
+          name: itemData.name,
+          original_price_cents: itemData.original_price_cents,
+          market_price_cents: itemData.market_price_cents,
+          image_url: itemData.image_url,
+          is_available: true,
+        })
+        .select('id')
+        .single()
+
+      if (itemError || !menuItem) {
+        console.error(`Error inserting menu item "${itemData.name}":`, itemError)
+        process.exit(1)
+      }
+
+      // Insert option groups and their options
+      for (const groupData of itemData.option_groups) {
+        const { data: group, error: groupError } = await supabase
+          .from('menu_item_option_groups')
+          .insert({
+            menu_item_id: menuItem.id,
+            name: groupData.name,
+            selection_type: groupData.selection_type,
+            is_required: groupData.is_required,
+            sort_order: groupData.sort_order,
+          })
+          .select('id')
+          .single()
+
+        if (groupError || !group) {
+          console.error(`Error inserting option group "${groupData.name}":`, groupError)
+          process.exit(1)
+        }
+
+        const optionsToInsert = groupData.options.map((opt) => ({
+          option_group_id: group.id,
+          name: opt.name,
+          additional_price_cents: opt.additional_price_cents,
+          is_default: opt.is_default,
+          sort_order: opt.sort_order,
+        }))
+
+        const { error: optionsError } = await supabase
+          .from('menu_item_options')
+          .insert(optionsToInsert)
+
+        if (optionsError) {
+          console.error(`Error inserting options for group "${groupData.name}":`, optionsError)
+          process.exit(1)
+        }
+      }
+    }
+
+    console.log(`  Seeded ${eateryData.menu_items.length} menu items for "${eateryData.name}"`)
   }
 
-  const existingNames = new Set((existing ?? []).map((e) => e.name))
-
-  const toInsert = EATERY_NAMES
-    .filter(({ name }) => !existingNames.has(name))
-    .map(({ name, address }) => ({
-      name,
-      address,
-      school_id: school.id,
-      is_active: true,
-    }))
-
-  if (toInsert.length === 0) {
-    console.log('All eateries already exist — nothing to insert.')
-    return
-  }
-
-  const { error: insertError } = await supabase.from('eateries').insert(toInsert)
-
-  if (insertError) {
-    console.error('Error inserting eateries:', insertError)
-    process.exit(1)
-  }
-
-  console.log(`Inserted ${toInsert.length} eaterie(s): ${toInsert.map((e) => e.name).join(', ')}`)
+  console.log('Seed complete.')
 }
 
 seed()

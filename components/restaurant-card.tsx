@@ -1,22 +1,25 @@
+import Link from 'next/link'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 interface RestaurantCardProps {
+  id: string
   name: string
-  image_url?: string | null
+  imageUrl: string | null
 }
 
-export function RestaurantCard({ name, image_url }: RestaurantCardProps) {
+export function RestaurantCard({ id, name, imageUrl }: RestaurantCardProps) {
   return (
-    <button
-      type="button"
+    <Link
+      data-testid="restaurant-card"
+      href={`/restaurant/${id}`}
       className={cn(
-        'group flex w-full cursor-pointer flex-col text-left',
+        'group flex w-full flex-col',
         'transition-all duration-200 ease-in-out',
         'hover:scale-[1.02]',
       )}
     >
-      {/* Restaurant image */}
+      {/* Restaurant image — 16:10 aspect ratio */}
       <div
         className={cn(
           'relative w-full rounded-xl bg-gray-200',
@@ -24,20 +27,18 @@ export function RestaurantCard({ name, image_url }: RestaurantCardProps) {
           'transition-shadow duration-200 group-hover:shadow-md',
         )}
       >
-        {image_url && (
+        {imageUrl && (
           <Image
-            src={image_url}
+            src={imageUrl}
             alt={name}
             fill
             className="object-cover"
-            sizes="(max-width: 1024px) 25vw, 200px"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
           />
         )}
       </div>
       {/* Restaurant name */}
-      <p className="mt-2 truncate px-0.5 text-sm font-semibold text-gray-900">
-        {name}
-      </p>
-    </button>
+      <p className="mt-2 truncate px-0.5 text-sm font-semibold text-gray-900">{name}</p>
+    </Link>
   )
 }
