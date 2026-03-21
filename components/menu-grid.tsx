@@ -21,7 +21,7 @@ export function MenuGrid({ items }: Props) {
     <>
       <div
         data-testid="menu-grid"
-        className="grid grid-cols-2 gap-3 pb-10 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5"
+        className="grid grid-cols-5 gap-3 pb-10"
       >
         {items.map((item) => (
           <button

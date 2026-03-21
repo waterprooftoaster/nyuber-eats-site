@@ -19,11 +19,11 @@ export function RestaurantCard({ id, name, imageUrl }: RestaurantCardProps) {
         'hover:scale-[1.02]',
       )}
     >
-      {/* Restaurant image — 16:10 aspect ratio */}
+      {/* Restaurant image*/}
       <div
         className={cn(
           'relative w-full rounded-xl bg-gray-200',
-          'aspect-[16/10] overflow-hidden',
+          'aspect-[2/1] overflow-hidden',
           'transition-shadow duration-200 group-hover:shadow-md',
         )}
       >

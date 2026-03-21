@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, X } from 'lucide-react'
 import type { LoadedCart } from '@/lib/cart/load'
@@ -14,6 +15,7 @@ function formatCents(cents: number): string {
 }
 
 export function CartPanel({ initialCart }: Props) {
+  const router = useRouter()
   const [cart, setCart] = useState<LoadedCart | null>(initialCart)
   const [removing, setRemoving] = useState<string | null>(null)
   const [removeError, setRemoveError] = useState<string | null>(null)
@@ -27,11 +29,11 @@ export function CartPanel({ initialCart }: Props) {
     }
   }, [])
 
-  // Slide-in animation on mount
+  // Slide-in from right on mount
   useEffect(() => {
     const el = panelRef.current
     if (!el) return
-    el.style.transform = 'translateX(-100%)'
+    el.style.transform = 'translateX(100%)'
     requestAnimationFrame(() => {
       el.style.transition = 'transform 300ms ease-out'
       el.style.transform = 'translateX(0)'
@@ -66,21 +68,30 @@ export function CartPanel({ initialCart }: Props) {
   }
 
   return (
-    <div className="relative min-h-screen bg-gray-50">
-      {/* Slide-in panel */}
+    <>
+      {/* Backdrop — greys everything behind the panel */}
+      <button
+        type="button"
+        aria-label="Close cart"
+        onClick={() => router.back()}
+        className="fixed inset-0 z-40 w-full bg-black/40 cursor-default"
+      />
+
+      {/* Sliding panel — fixed to right edge, full viewport height */}
       <div
         ref={panelRef}
-        className="relative mx-auto flex min-h-screen max-w-sm flex-col bg-white shadow-xl"
+        className="fixed right-0 top-0 z-50 flex h-screen w-full max-w-sm flex-col bg-white shadow-xl"
       >
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-4">
-          <Link
-            href="/"
+          <button
+            type="button"
             aria-label="Back"
+            onClick={() => router.back()}
             className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
           >
             <ArrowLeft className="h-4 w-4 text-gray-700" />
-          </Link>
+          </button>
           <h1 className="text-base font-semibold text-gray-900">
             {cart?.eatery_name ?? 'Your Cart'}
           </h1>
@@ -148,6 +159,12 @@ export function CartPanel({ initialCart }: Props) {
         {/* Checkout button */}
         {cart && cart.items.length > 0 && (
           <div className="border-t border-gray-100 p-4">
+            <div className="mb-3 flex items-center justify-between text-sm">
+              <span className="text-gray-500">Subtotal</span>
+              <span className="font-semibold text-gray-900">
+                {formatCents(cart.items.reduce((sum, i) => sum + i.price_cents * i.quantity, 0))}
+              </span>
+            </div>
             {checkoutMsg && (
               <p
                 data-testid="checkout-toast"
@@ -166,6 +183,6 @@ export function CartPanel({ initialCart }: Props) {
           </div>
         )}
       </div>
-    </div>
+    </>
   )
 }

@@ -105,9 +105,10 @@ export async function POST(request: NextRequest) {
 
   const response = apiSuccess({ item: cartItem }, 201)
   if (isNewSession && sessionId) {
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
     response.headers.set(
       'Set-Cookie',
-      `${CART_SESSION_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Secure`
+      `${CART_SESSION_COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Lax${secure}`
     )
   }
   return response

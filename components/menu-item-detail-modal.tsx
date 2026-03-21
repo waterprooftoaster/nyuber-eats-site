@@ -38,10 +38,14 @@ export function MenuItemDetailModal({ item, onClose }: Props) {
     if (!item) {
       setGroups(null)
       setSelectedOptions({})
+      setAdding(false)
+      setAddError(null)
       return
     }
     setLoading(true)
     setGroups(null)
+    setAdding(false)
+    setAddError(null)
 
     fetch(`/api/menu-items/${item.id}/options`)
       .then((res) => res.json())

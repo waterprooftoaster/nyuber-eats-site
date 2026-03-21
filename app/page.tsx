@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { RestaurantCard } from '@/components/restaurant-card'
-import { Header } from '@/components/header'
 import { seedDevEateries } from '@/lib/dev-seed'
 
 export default async function Home() {
@@ -22,8 +21,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-white">
-      <Header />
-      <div className="mx-auto grid max-w-5xl grid-cols-4 gap-5 p-8">
+      <div className="grid grid-cols-5 gap-5 p-8">
         {(eateries ?? []).map((eatery) => (
           <RestaurantCard
             key={eatery.id}

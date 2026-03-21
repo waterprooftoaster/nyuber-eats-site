@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Header } from '@/components/header'
 import { RestaurantHero } from '@/components/restaurant-hero'
 import { MenuGrid } from '@/components/menu-grid'
 
@@ -29,23 +28,17 @@ export default async function RestaurantPage({ params }: Props) {
   if (!eatery) notFound()
 
   return (
-    <main className="min-h-screen bg-white">
-      <Header />
+    <main className="min-h-screen bg-white pt-2">
+      <div className="max-w-[60rem] mx-auto -translate-x-28 px-4">
+        <RestaurantHero imageUrl={eatery.image_url} alt={eatery.name} />
 
-      {/* Full-width hero image */}
-      <RestaurantHero imageUrl={eatery.image_url} alt={eatery.name} />
-
-      {/* Content — no side margins on mobile, large margins on desktop */}
-      <div className="px-0 sm:px-8 lg:px-32">
-        {/* Restaurant info */}
-        <div className="px-4 py-5 sm:px-0">
-          <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">{eatery.name}</h1>
+        <div className="py-5">
+          <h1 className="text-2xl font-bold text-gray-900">{eatery.name}</h1>
           <p data-testid="restaurant-address" className="mt-1 text-sm text-gray-500">
             {eatery.address}
           </p>
         </div>
 
-        {/* Menu grid */}
         <MenuGrid items={menuItems ?? []} />
       </div>
     </main>
