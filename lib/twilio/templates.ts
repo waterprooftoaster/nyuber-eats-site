@@ -37,3 +37,8 @@ export function proxyAcceptedSwiper(): string {
 export function proxyAcceptedSwiperWithEatery(eateryName: string): string {
   return `You've accepted an order from ${sanitize(eateryName)}! Any replies to this number will go to the customer.`
 }
+
+export function paymentReceived(amountCents: number): string {
+  const dollars = (amountCents / 100).toFixed(2)
+  return `You've been paid $${dollars}! Your earnings are on their way.`
+}

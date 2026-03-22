@@ -135,6 +135,23 @@ async function notifyProxyAccepted(order: Order): Promise<void> {
   ])
 }
 
+export async function notifyPaymentReceived(orderId: string, earningsCents: number): Promise<void> {
+  const supabase = createServiceClient()
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('swiper_id')
+    .eq('id', orderId)
+    .single()
+  if (orderError) {
+    console.error('notifyPaymentReceived: failed to fetch order', orderError)
+    return
+  }
+  if (!order?.swiper_id) return
+  const phone = await getSwiperPhone(order.swiper_id)
+  if (!phone) return
+  await sendSMS(phone, templates.paymentReceived(earningsCents), `payment:${orderId}`)
+}
+
 export async function notifyNewMessage(
   orderId: string,
   senderId: string | null,
