@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { updateProfileSchema } from '@/lib/types/api'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
 
@@ -59,12 +60,17 @@ export async function PATCH(request: NextRequest) {
   }
 
   // Build immutable updates object — only include provided fields.
-  // updated_at is managed by the DB trigger; do not set it here.
+  // updated_at is managed by the DB trigger.
   const updates: Record<string, unknown> = {}
   if (school_id !== undefined) updates.school_id = school_id
   if (is_swiper !== undefined) updates.is_swiper = is_swiper
 
-  const { data: updated, error } = await supabase
+  // is_swiper column has REVOKE UPDATE FROM authenticated — must use service role
+  // for any update that touches it. For non-is_swiper updates, authenticated client
+  // is fine (user can only update their own row via RLS).
+  const writeClient = is_swiper !== undefined ? createServiceClient() : supabase
+
+  const { data: updated, error } = await writeClient
     .from('profiles')
     .update(updates)
     .eq('id', user.id)
