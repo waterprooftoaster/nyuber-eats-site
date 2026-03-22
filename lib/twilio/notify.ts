@@ -3,6 +3,7 @@ import 'server-only'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendSMS } from './sms'
 import * as templates from './templates'
+import { createProxySession, deactivateProxySession } from './proxy'
 import type { Order, OrderStatus } from '@/lib/types/database'
 
 async function getOrdererPhone(order: Order): Promise<string | null> {
@@ -50,29 +51,77 @@ export async function notifyOrderStatusChange(
 ): Promise<void> {
   if (!NOTIFIABLE_STATUSES.has(newStatus)) return
 
+  if (newStatus === 'accepted') {
+    await notifyProxyAccepted(order)
+    return
+  }
+
   const phone = await getOrdererPhone(order)
   if (!phone) return
 
   let body: string
   switch (newStatus) {
-    case 'accepted': {
-      const name = order.swiper_id
-        ? await getDisplayName(order.swiper_id)
-        : 'A swiper'
-      body = templates.orderAccepted(name)
-      break
-    }
     case 'in_progress':
       body = templates.orderInProgress()
       break
     case 'completed':
       body = templates.orderCompleted()
+      void deactivateProxySession(order.id)
       break
     default:
       return
   }
 
   await sendSMS(phone, body, `order:${order.id}:${newStatus}`)
+}
+
+async function notifyProxyAccepted(order: Order): Promise<void> {
+  if (!order.swiper_id) return
+
+  const supabase = createServiceClient()
+
+  const [ordererPhone, swiperPhone, swiperName, convResult] = await Promise.all([
+    getOrdererPhone(order),
+    getSwiperPhone(order.swiper_id),
+    getDisplayName(order.swiper_id),
+    supabase.from('conversations').select('id').eq('order_id', order.id).single(),
+  ])
+
+  const conv = convResult.data
+
+  if (!ordererPhone || !swiperPhone || !conv) {
+    // Graceful fallback: notify orderer only with basic message
+    if (ordererPhone) {
+      await sendSMS(
+        ordererPhone,
+        templates.orderAccepted(swiperName),
+        `order:${order.id}:accepted`
+      )
+    }
+    return
+  }
+
+  await createProxySession({
+    orderId: order.id,
+    conversationId: conv.id,
+    ordererPhone,
+    ordererId: order.orderer_id ?? null,
+    swiperPhone,
+    swiperId: order.swiper_id,
+  })
+
+  await Promise.all([
+    sendSMS(
+      ordererPhone,
+      templates.proxyAcceptedOrderer(swiperName),
+      `proxy:orderer:${order.id}`
+    ),
+    sendSMS(
+      swiperPhone,
+      templates.proxyAcceptedSwiper(),
+      `proxy:swiper:${order.id}`
+    ),
+  ])
 }
 
 export async function notifyNewMessage(

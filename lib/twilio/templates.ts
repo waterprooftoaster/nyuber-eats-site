@@ -23,3 +23,11 @@ export function newMessageFromOrderer(name: string, preview: string): string {
   const truncated = preview.length > 100 ? preview.slice(0, 97) + '...' : preview
   return `${sanitize(name)}: ${truncated}`
 }
+
+export function proxyAcceptedOrderer(swiperName: string): string {
+  return `Your order is being prepared by ${sanitize(swiperName)}. Text this number to follow up with your swiper.`
+}
+
+export function proxyAcceptedSwiper(): string {
+  return "You've accepted an order! Any replies to this number will go to the customer."
+}
