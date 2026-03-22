@@ -51,3 +51,14 @@ export const addCartItemSchema = z.object({
 })
 
 export type AddCartItemInput = z.infer<typeof addCartItemSchema>
+
+export const updateProfileSchema = z
+  .object({
+    school_id: z.string().uuid().optional(),
+    is_swiper: z.boolean().optional(),
+  })
+  .refine((d) => d.school_id !== undefined || d.is_swiper !== undefined, {
+    message: 'At least one field must be provided',
+  })
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
