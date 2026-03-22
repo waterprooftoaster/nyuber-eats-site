@@ -23,6 +23,18 @@ export async function PATCH(request: NextRequest) {
 
   const { school_id, is_swiper } = parsed.data
 
+  if (is_swiper === false) {
+    // Prevent deactivation while orders are in progress
+    const { count } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('swiper_id', user.id)
+      .in('status', ['accepted', 'in_progress'])
+    if (count && count > 0) {
+      return apiError('Cannot deactivate swiper status while orders are in progress', 422)
+    }
+  }
+
   if (is_swiper === true) {
     // Fetch current profile to get effective school_id
     const { data: profile } = await supabase

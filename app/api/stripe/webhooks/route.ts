@@ -43,17 +43,31 @@ export async function POST(request: NextRequest) {
       // M-3: Validate order_id is a real UUID before touching the DB
       if (!orderId || !piId || !UUID_RE.test(orderId)) break
 
+      // Fetch payee_id (swiper) — required NOT NULL field on payments table
+      const { data: orderRow } = await supabase
+        .from('orders')
+        .select('swiper_id, orderer_id')
+        .eq('id', orderId)
+        .single()
+      if (!orderRow?.swiper_id) break
+
       // Insert as pending so payment_intent.succeeded can advance it to succeeded
-      await supabase.from('payments').upsert(
+      const { error: upsertError } = await supabase.from('payments').upsert(
         {
           order_id: orderId,
           stripe_payment_intent_id: piId,
           amount_cents: session.amount_total ?? 0,
           platform_fee_cents: 100,
           status: 'pending',
+          payee_id: orderRow.swiper_id,
+          payer_id: orderRow.orderer_id ?? null,
         },
         { onConflict: 'stripe_payment_intent_id', ignoreDuplicates: true }
       )
+      if (upsertError) {
+        console.error('checkout.session.completed: failed to upsert payment', upsertError)
+        return apiError('Failed to record payment', 500)
+      }
       break
     }
 

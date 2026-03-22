@@ -168,7 +168,7 @@ export async function notifyNewMessage(
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, guest_stripe_pm_id, created_at, updated_at')
+    .select('id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, created_at, updated_at')
     .eq('id', orderId)
     .single()
   if (!order) return

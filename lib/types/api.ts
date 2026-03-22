@@ -19,15 +19,10 @@ export const createOrderSchema = z.object({
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>
 
+// Only statuses a client can supply — 'accepted' is set by the accept endpoint,
+// 'paid' by the Stripe webhook; 'pending' is the initial state only.
 export const updateOrderStatusSchema = z.object({
-  status: z.enum([
-    'pending',
-    'accepted',
-    'in_progress',
-    'completed',
-    'paid',
-    'cancelled',
-  ]),
+  status: z.enum(['in_progress', 'completed', 'cancelled']),
 })
 
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>

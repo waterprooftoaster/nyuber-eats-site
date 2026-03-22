@@ -23,11 +23,6 @@ export async function PATCH(
   }
   const { status: newStatus } = parsed.data
 
-  // Nobody manually sets 'paid' — webhook handles that
-  if (newStatus === 'paid') {
-    return apiError('Cannot manually set status to paid', 400)
-  }
-
   const { data: order } = await supabase
     .from('orders')
     .select('id, orderer_id, swiper_id, status')
