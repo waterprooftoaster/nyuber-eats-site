@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Home, LayoutDashboard, ShoppingCart, User } from "lucide-react"
+import { ClipboardList, Home, LayoutDashboard, ShoppingCart, User } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 
 const navBtnClass =
@@ -22,10 +22,16 @@ export function Sidebar({ user, isSwiper }: Props) {
         Cart
       </Link>
       {user && isSwiper && (
-        <Link href="/swiper/dashboard" className={navBtnClass}>
-          <LayoutDashboard className="h-5 w-5" />
-          Swiper Dashboard
-        </Link>
+        <>
+          <Link href="/swiper/dashboard" className={navBtnClass}>
+            <LayoutDashboard className="h-5 w-5" />
+            Swiper Dashboard
+          </Link>
+          <Link href="/swiper/orders" className={navBtnClass}>
+            <ClipboardList className="h-5 w-5" />
+            Pending Orders
+          </Link>
+        </>
       )}
       {user ? (
         <Link href="/account" className={navBtnClass}>

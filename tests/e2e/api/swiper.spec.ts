@@ -10,4 +10,9 @@ test.describe('Swiper API — unauthenticated', () => {
     const res = await request.get('/api/swiper/orders')
     expect(res.status()).toBe(401)
   })
+
+  test('GET /api/swiper/pending returns 401', async ({ request }) => {
+    const res = await request.get('/api/swiper/pending')
+    expect(res.status()).toBe(401)
+  })
 })

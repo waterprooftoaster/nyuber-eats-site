@@ -75,16 +75,27 @@ export async function notifyOrderStatusChange(
   await sendSMS(phone, body, `order:${order.id}:${newStatus}`)
 }
 
+async function getEateryName(eateryId: string): Promise<string | null> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('eateries')
+    .select('name')
+    .eq('id', eateryId)
+    .single()
+  return data?.name ?? null
+}
+
 async function notifyProxyAccepted(order: Order): Promise<void> {
   if (!order.swiper_id) return
 
   const supabase = createServiceClient()
 
-  const [ordererPhone, swiperPhone, swiperName, convResult] = await Promise.all([
+  const [ordererPhone, swiperPhone, swiperName, convResult, eateryName] = await Promise.all([
     getOrdererPhone(order),
     getSwiperPhone(order.swiper_id),
     getDisplayName(order.swiper_id),
     supabase.from('conversations').select('id').eq('order_id', order.id).single(),
+    getEateryName(order.eatery_id),
   ])
 
   const conv = convResult.data
@@ -110,17 +121,17 @@ async function notifyProxyAccepted(order: Order): Promise<void> {
     swiperId: order.swiper_id,
   })
 
+  const swiperMsg = eateryName
+    ? templates.proxyAcceptedSwiperWithEatery(eateryName)
+    : templates.proxyAcceptedSwiper()
+
   await Promise.all([
     sendSMS(
       ordererPhone,
       templates.proxyAcceptedOrderer(swiperName),
       `proxy:orderer:${order.id}`
     ),
-    sendSMS(
-      swiperPhone,
-      templates.proxyAcceptedSwiper(),
-      `proxy:swiper:${order.id}`
-    ),
+    sendSMS(swiperPhone, swiperMsg, `proxy:swiper:${order.id}`),
   ])
 }
 
