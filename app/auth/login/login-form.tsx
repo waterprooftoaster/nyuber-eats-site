@@ -180,8 +180,8 @@ export function LoginForm({
                   placeholder="Username"
                   required
                   maxLength={50}
-                  pattern="[a-zA-Z0-9_.\-]+"
-                  title="Letters, numbers, underscores, hyphens, and periods only"
+                  pattern="[a-zA-Z0-9_ .\-]+"
+                  title="Letters, numbers, spaces, underscores, hyphens, and periods only"
                   className={inputStyle}
                 />
               </div>
@@ -199,6 +199,7 @@ export function LoginForm({
                     setSelectedSchool(value as { value: string; label: string } | null)
                   }
                   isItemEqualToValue={(a, b) => a.value === b.value}
+                  autoHighlight
                 >
                   <ComboboxInput
                     placeholder="Search schools..."

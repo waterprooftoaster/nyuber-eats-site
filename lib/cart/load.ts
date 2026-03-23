@@ -76,7 +76,7 @@ export async function loadCart(
       menu_item_id: item.menu_item_id,
       name: mi.name,
       quantity: item.quantity as number,
-      price_cents: mi.market_price_cents ?? mi.original_price_cents,
+      price_cents: Math.round(mi.original_price_cents * 0.5),
       image_url: mi.image_url,
       selected_options: (item.selected_options as string[])
         .map((id) => optionMap.get(id))

@@ -151,12 +151,13 @@ export function CartPanel({ initialCart }: Props) {
                 {formatCents(cart.items.reduce((sum, i) => sum + i.price_cents * i.quantity, 0))}
               </span>
             </div>
-            <Link
-              href="/checkout"
+            <button
+              type="button"
+              onClick={() => router.replace('/checkout')}
               className="block w-full rounded-none bg-black py-3 text-center text-sm font-semibold text-white hover:bg-gray-900"
             >
               Checkout
-            </Link>
+            </button>
           </div>
         )}
       </div>

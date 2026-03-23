@@ -1,10 +1,7 @@
 import Link from "next/link"
-import { ShoppingCart } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getAuthenticatedUser } from "@/lib/api/helpers"
-
-const iconBtnClass =
-  "rounded-full p-2 text-black transition-colors hover:bg-black/10"
+import { HeaderCartButton } from "@/components/header-cart-button"
 
 export async function Header() {
   const supabase = await createClient()
@@ -17,9 +14,7 @@ export async function Header() {
       </Link>
 
       <div className="flex items-center gap-1">
-        <Link href="/cart" className={iconBtnClass} aria-label="Cart">
-          <ShoppingCart className="h-5 w-5" />
-        </Link>
+        <HeaderCartButton />
 
         {!user && (
           <>

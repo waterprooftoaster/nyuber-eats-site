@@ -15,11 +15,30 @@ export function orderCompleted(): string {
 }
 
 export function newMessageFromSwiper(name: string, preview: string): string {
-  const truncated = preview.length > 100 ? preview.slice(0, 97) + '...' : preview
+  const cleaned = sanitize(preview)
+  const truncated = cleaned.length > 100 ? cleaned.slice(0, 97) + '...' : cleaned
   return `${sanitize(name)}: ${truncated}`
 }
 
 export function newMessageFromOrderer(name: string, preview: string): string {
-  const truncated = preview.length > 100 ? preview.slice(0, 97) + '...' : preview
+  const cleaned = sanitize(preview)
+  const truncated = cleaned.length > 100 ? cleaned.slice(0, 97) + '...' : cleaned
   return `${sanitize(name)}: ${truncated}`
+}
+
+export function proxyAcceptedOrderer(swiperName: string): string {
+  return `Your order is being prepared by ${sanitize(swiperName)}. Text this number to follow up with your swiper.`
+}
+
+export function proxyAcceptedSwiper(): string {
+  return "You've accepted an order! Any replies to this number will go to the customer."
+}
+
+export function proxyAcceptedSwiperWithEatery(eateryName: string): string {
+  return `You've accepted an order from ${sanitize(eateryName)}! Any replies to this number will go to the customer.`
+}
+
+export function paymentReceived(amountCents: number): string {
+  const dollars = (amountCents / 100).toFixed(2)
+  return `You've been paid $${dollars}! Your earnings are on their way.`
 }

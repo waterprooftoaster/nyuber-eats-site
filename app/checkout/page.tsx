@@ -1,12 +1,11 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getAuthenticatedUser } from '@/lib/api/helpers'
 import { loadCart } from '@/lib/cart/load'
 import { CheckoutForm } from '@/components/checkout-form'
+import { BackButton } from '@/components/back-button'
 import type { LoadedCart } from '@/lib/cart/load'
 
 function formatCents(cents: number): string {
@@ -14,8 +13,7 @@ function formatCents(cents: number): string {
 }
 
 function CartSummary({ cart }: { cart: LoadedCart }) {
-  const ITEM_PRICE_CENTS = 700
-  const subtotal = cart.items.reduce((sum, item) => sum + item.quantity * ITEM_PRICE_CENTS, 0)
+  const subtotal = cart.items.reduce((sum, item) => sum + item.quantity * item.price_cents, 0)
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -43,7 +41,7 @@ function CartSummary({ cart }: { cart: LoadedCart }) {
               )}
             </div>
             <span className="text-sm font-medium text-gray-900">
-              {formatCents(item.quantity * ITEM_PRICE_CENTS)}
+              {formatCents(item.quantity * item.price_cents)}
             </span>
           </li>
         ))}
@@ -100,13 +98,7 @@ export default async function CheckoutPage() {
       <div className="mx-auto max-w-5xl px-4 py-8">
         {/* Header */}
         <div className="mb-8 flex items-center gap-3">
-          <Link
-            href="/cart"
-            aria-label="Back to cart"
-            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"
-          >
-            <ArrowLeft className="h-4 w-4 text-gray-700" />
-          </Link>
+          <BackButton />
           <h1 className="text-xl font-semibold text-gray-900">Checkout</h1>
         </div>
 

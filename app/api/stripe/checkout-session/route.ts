@@ -69,20 +69,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // All items are $7 (700 cents) per the business model
-  const ITEM_PRICE_CENTS = 700
+  // User pays 50% of original price (already computed in loadCart)
   const totalItemCents = loaded.items.reduce(
-    (sum, item) => sum + item.quantity * ITEM_PRICE_CENTS,
+    (sum, item) => sum + item.quantity * item.price_cents,
     0
   )
-  // M-2: Cap tip to order subtotal — prevents $100 tip on a $7 meal
+  // M-2: Cap tip to order subtotal
   const tipCents = Math.min(tip_cents ?? 0, totalItemCents)
   const totalCents = totalItemCents + tipCents
+  // Platform fee = 10% of original = 20% of what user pays
+  const feeCents = Math.round(totalItemCents * 0.2)
 
   const orderItems = loaded.items.map((item) => ({
     menu_item_id: item.menu_item_id,
     name: item.name,
-    price_cents: ITEM_PRICE_CENTS,
+    price_cents: item.price_cents,
     quantity: item.quantity,
   }))
 
@@ -124,11 +125,11 @@ export async function POST(request: NextRequest) {
       mode: 'payment',
       return_url: returnUrl,
       // Top-level metadata read by checkout.session.completed webhook
-      metadata: { order_id: order.id },
+      metadata: { order_id: order.id, platform_fee_cents: String(feeCents) },
       line_items: loaded.items.map((item) => ({
         price_data: {
           currency: 'usd',
-          unit_amount: ITEM_PRICE_CENTS,
+          unit_amount: item.price_cents,
           product_data: { name: item.name },
         },
         quantity: item.quantity,

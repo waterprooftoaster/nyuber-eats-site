@@ -3,6 +3,7 @@ import 'server-only'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendSMS } from './sms'
 import * as templates from './templates'
+import { createProxySession, deactivateProxySession } from './proxy'
 import type { Order, OrderStatus } from '@/lib/types/database'
 
 async function getOrdererPhone(order: Order): Promise<string | null> {
@@ -50,29 +51,105 @@ export async function notifyOrderStatusChange(
 ): Promise<void> {
   if (!NOTIFIABLE_STATUSES.has(newStatus)) return
 
+  if (newStatus === 'accepted') {
+    await notifyProxyAccepted(order)
+    return
+  }
+
   const phone = await getOrdererPhone(order)
   if (!phone) return
 
   let body: string
   switch (newStatus) {
-    case 'accepted': {
-      const name = order.swiper_id
-        ? await getDisplayName(order.swiper_id)
-        : 'A swiper'
-      body = templates.orderAccepted(name)
-      break
-    }
     case 'in_progress':
       body = templates.orderInProgress()
       break
     case 'completed':
       body = templates.orderCompleted()
+      void deactivateProxySession(order.id)
       break
     default:
       return
   }
 
   await sendSMS(phone, body, `order:${order.id}:${newStatus}`)
+}
+
+async function getEateryName(eateryId: string): Promise<string | null> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('eateries')
+    .select('name')
+    .eq('id', eateryId)
+    .single()
+  return data?.name ?? null
+}
+
+async function notifyProxyAccepted(order: Order): Promise<void> {
+  if (!order.swiper_id) return
+
+  const supabase = createServiceClient()
+
+  const [ordererPhone, swiperPhone, swiperName, convResult, eateryName] = await Promise.all([
+    getOrdererPhone(order),
+    getSwiperPhone(order.swiper_id),
+    getDisplayName(order.swiper_id),
+    supabase.from('conversations').select('id').eq('order_id', order.id).single(),
+    getEateryName(order.eatery_id),
+  ])
+
+  const conv = convResult.data
+
+  if (!ordererPhone || !swiperPhone || !conv) {
+    // Graceful fallback: notify orderer only with basic message
+    if (ordererPhone) {
+      await sendSMS(
+        ordererPhone,
+        templates.orderAccepted(swiperName),
+        `order:${order.id}:accepted`
+      )
+    }
+    return
+  }
+
+  await createProxySession({
+    orderId: order.id,
+    conversationId: conv.id,
+    ordererPhone,
+    ordererId: order.orderer_id ?? null,
+    swiperPhone,
+    swiperId: order.swiper_id,
+  })
+
+  const swiperMsg = eateryName
+    ? templates.proxyAcceptedSwiperWithEatery(eateryName)
+    : templates.proxyAcceptedSwiper()
+
+  await Promise.all([
+    sendSMS(
+      ordererPhone,
+      templates.proxyAcceptedOrderer(swiperName),
+      `proxy:orderer:${order.id}`
+    ),
+    sendSMS(swiperPhone, swiperMsg, `proxy:swiper:${order.id}`),
+  ])
+}
+
+export async function notifyPaymentReceived(orderId: string, earningsCents: number): Promise<void> {
+  const supabase = createServiceClient()
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select('swiper_id')
+    .eq('id', orderId)
+    .single()
+  if (orderError) {
+    console.error('notifyPaymentReceived: failed to fetch order', orderError)
+    return
+  }
+  if (!order?.swiper_id) return
+  const phone = await getSwiperPhone(order.swiper_id)
+  if (!phone) return
+  await sendSMS(phone, templates.paymentReceived(earningsCents), `payment:${orderId}`)
 }
 
 export async function notifyNewMessage(
@@ -91,7 +168,7 @@ export async function notifyNewMessage(
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, guest_stripe_pm_id, created_at, updated_at')
+    .select('id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, created_at, updated_at')
     .eq('id', orderId)
     .single()
   if (!order) return

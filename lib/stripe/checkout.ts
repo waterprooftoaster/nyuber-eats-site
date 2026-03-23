@@ -2,11 +2,10 @@ import 'server-only'
 
 import { getStripe } from './client'
 
-export const PLATFORM_FEE_CENTS = 100
-
 export async function createPaymentIntent({
   amountCents,
   tipCents,
+  platformFeeCents,
   stripeConnectedAccountId,
   orderId,
   payerEmail,
@@ -14,19 +13,19 @@ export async function createPaymentIntent({
 }: {
   amountCents: number
   tipCents: number
+  platformFeeCents: number
   stripeConnectedAccountId: string
   orderId: string
   payerEmail?: string
   paymentMethodId?: string
 }) {
   const totalAmount = amountCents + tipCents
-  const platformFee = PLATFORM_FEE_CENTS
 
   return getStripe().paymentIntents.create(
     {
       amount: totalAmount,
       currency: 'usd',
-      application_fee_amount: platformFee,
+      application_fee_amount: platformFeeCents,
       transfer_data: {
         destination: stripeConnectedAccountId,
       },

@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getStripe } from '@/lib/stripe/client'
-import { createPaymentIntent, PLATFORM_FEE_CENTS } from '@/lib/stripe/checkout'
+import { createPaymentIntent } from '@/lib/stripe/checkout'
+import { platformFeeCents } from '@/lib/pricing'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
 
 export async function POST(
@@ -74,15 +75,17 @@ export async function POST(
     )
   }
 
+  const itemsCents = order.total_cents - order.tip_cents
+  const fee = platformFeeCents(itemsCents)
+
   const paymentIntent = await createPaymentIntent({
     amountCents: order.total_cents,
     tipCents: order.tip_cents,
+    platformFeeCents: fee,
     stripeConnectedAccountId: stripeAccount.stripe_account_id,
     orderId: order.id,
     payerEmail: user.email,
   })
-
-  const platformFee = PLATFORM_FEE_CENTS
 
   const { error: paymentError } = await serviceClient
     .from('payments')
@@ -90,7 +93,7 @@ export async function POST(
       order_id: order.id,
       stripe_payment_intent_id: paymentIntent.id,
       amount_cents: order.total_cents + order.tip_cents,
-      platform_fee_cents: platformFee,
+      platform_fee_cents: fee,
       payer_id: user.id,
       payee_id: order.swiper_id,
     })

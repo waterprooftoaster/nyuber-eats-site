@@ -9,6 +9,7 @@ export default async function Home() {
     .from('eateries')
     .select('id, name, image_url')
     .eq('is_active', true)
+    .order('name')
 
   if (process.env.NODE_ENV === 'development' && (!eateries || eateries.length === 0)) {
     await seedDevEateries()

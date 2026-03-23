@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { getStripe } from '@/lib/stripe/client'
 import { createServiceClient } from '@/lib/supabase/service'
 import { apiError, apiSuccess } from '@/lib/api/helpers'
+import { deactivateProxySession } from '@/lib/twilio/proxy'
+import { notifyPaymentReceived } from '@/lib/twilio/notify'
 import type Stripe from 'stripe'
 
 // M-3: Validate metadata order_id values before trusting them in DB queries
@@ -41,17 +43,37 @@ export async function POST(request: NextRequest) {
       // M-3: Validate order_id is a real UUID before touching the DB
       if (!orderId || !piId || !UUID_RE.test(orderId)) break
 
+      // Fetch payee_id (swiper) — required NOT NULL field on payments table
+      const { data: orderRow } = await supabase
+        .from('orders')
+        .select('swiper_id, orderer_id')
+        .eq('id', orderId)
+        .single()
+      if (!orderRow?.swiper_id) break
+
+      const amountTotal = session.amount_total ?? 0
+      // Read fee stored in session metadata; fall back to 20% of charge (10% of original)
+      const feeCents = session.metadata?.platform_fee_cents
+        ? parseInt(session.metadata.platform_fee_cents, 10)
+        : Math.round(amountTotal * 0.2)
+
       // Insert as pending so payment_intent.succeeded can advance it to succeeded
-      await supabase.from('payments').upsert(
+      const { error: upsertError } = await supabase.from('payments').upsert(
         {
           order_id: orderId,
           stripe_payment_intent_id: piId,
-          amount_cents: session.amount_total ?? 0,
-          platform_fee_cents: 100,
+          amount_cents: amountTotal,
+          platform_fee_cents: feeCents,
           status: 'pending',
+          payee_id: orderRow.swiper_id,
+          payer_id: orderRow.orderer_id ?? null,
         },
         { onConflict: 'stripe_payment_intent_id', ignoreDuplicates: true }
       )
+      if (upsertError) {
+        console.error('checkout.session.completed: failed to upsert payment', upsertError)
+        return apiError('Failed to record payment', 500)
+      }
       break
     }
 
@@ -75,6 +97,12 @@ export async function POST(request: NextRequest) {
         .update({ status: 'paid' })
         .eq('id', orderId)
         .in('status', ['pending', 'accepted', 'in_progress', 'completed'])
+
+      // Safety net: deactivate proxy session if not already done at 'completed'
+      void deactivateProxySession(orderId)
+      // Earnings = charge amount minus platform fee (avoids a DB round-trip)
+      const earningsCents = pi.amount - (pi.application_fee_amount ?? Math.round(pi.amount * 0.2))
+      void notifyPaymentReceived(orderId, earningsCents)
 
       break
     }

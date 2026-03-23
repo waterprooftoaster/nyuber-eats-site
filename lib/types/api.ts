@@ -19,15 +19,10 @@ export const createOrderSchema = z.object({
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>
 
+// Only statuses a client can supply — 'accepted' is set by the accept endpoint,
+// 'paid' by the Stripe webhook; 'pending' is the initial state only.
 export const updateOrderStatusSchema = z.object({
-  status: z.enum([
-    'pending',
-    'accepted',
-    'in_progress',
-    'completed',
-    'paid',
-    'cancelled',
-  ]),
+  status: z.enum(['in_progress', 'completed', 'cancelled']),
 })
 
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>
@@ -51,3 +46,14 @@ export const addCartItemSchema = z.object({
 })
 
 export type AddCartItemInput = z.infer<typeof addCartItemSchema>
+
+export const updateProfileSchema = z
+  .object({
+    school_id: z.string().uuid().optional(),
+    is_swiper: z.boolean().optional(),
+  })
+  .refine((d) => d.school_id !== undefined || d.is_swiper !== undefined, {
+    message: 'At least one field must be provided',
+  })
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>

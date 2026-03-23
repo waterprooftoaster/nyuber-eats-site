@@ -31,6 +31,11 @@ export default async function RootLayout({
   const supabase = await createClient();
   const user = await getAuthenticatedUser(supabase);
 
+  const isSwiper = user
+    ? ((await supabase.from('profiles').select('is_swiper').eq('id', user.id).single())
+        .data?.is_swiper ?? false)
+    : false
+
   return (
     <html
       lang="en"
@@ -39,7 +44,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <Header />
         <div className="flex flex-1">
-          <Sidebar user={user} />
+          <Sidebar user={user} isSwiper={isSwiper} />
           <div className="flex-1 min-w-0">
             {children}
           </div>

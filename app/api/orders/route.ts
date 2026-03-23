@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   for (const item of items) {
     const mi = menuItemMap.get(item.menu_item_id)
     if (!mi) return apiError('Menu item not found', 400)
-    const effectivePrice = mi.market_price_cents ?? mi.original_price_cents
+    const effectivePrice = Math.round(mi.original_price_cents * 0.5)
     orderItems.push({
       menu_item_id: mi.id,
       name: mi.name,
@@ -107,7 +107,10 @@ export async function GET(request: NextRequest) {
   const role = searchParams.get('role')
   const status = searchParams.get('status')
 
-  let query = supabase.from('orders').select('*')
+  // guest_stripe_pm_id intentionally excluded — it is a sensitive payment token
+  let query = supabase.from('orders').select(
+    'id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, created_at, updated_at'
+  )
 
   if (role === 'orderer') {
     query = query.eq('orderer_id', user.id)

@@ -3,6 +3,7 @@ export interface Profile {
   username: string
   email: string
   school_id: string | null
+  is_swiper: boolean
   avatar_url: string | null
   phone: string | null
   created_at: string

@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { validateRequest } from 'twilio'
 import { createServiceClient } from '@/lib/supabase/service'
 import { notifyNewMessage } from '@/lib/twilio/notify'
+import { findActiveProxySession } from '@/lib/twilio/proxy'
+import { sendSMS } from '@/lib/twilio/sms'
 
 export async function POST(request: NextRequest) {
   // Validate Twilio signature
@@ -41,7 +43,27 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient()
 
-  // Look up sender by phone: check profiles first, then guest orders
+  // Proxy routing: check for an active proxy session before falling back to
+  // the web-messaging flow. This handles the anonymous SMS relay between
+  // orderers and swipers without exposing real phone numbers.
+  const proxyResult = await findActiveProxySession(from)
+  if (proxyResult) {
+    await supabase.from('messages').insert({
+      conversation_id: proxyResult.conversationId,
+      sender_id: proxyResult.senderId,
+      body: body.slice(0, 1000),
+    })
+    // Forward full message body to the other party — no dedupeKey so every
+    // text is forwarded regardless of timing
+    void sendSMS(proxyResult.recipientPhone, body.slice(0, 1000))
+    return new Response('<Response/>', {
+      status: 200,
+      headers: { 'Content-Type': 'text/xml' },
+    })
+  }
+
+  // Non-proxy path: look up sender by phone, find their conversation, and
+  // send a notification preview to the other party
   let senderId: string | null = null
   const { data: profile } = await supabase
     .from('profiles')

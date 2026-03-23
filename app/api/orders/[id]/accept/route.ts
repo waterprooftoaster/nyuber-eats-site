@@ -14,10 +14,10 @@ export async function PATCH(
   const user = await getAuthenticatedUser(supabase)
   if (!user) return apiError('Unauthorized', 401)
 
-  // Verify order exists and is pending
+  // Verify order exists and is pending; include eatery_id for school check below
   const { data: order } = await supabase
     .from('orders')
-    .select('id, orderer_id, swiper_id, status')
+    .select('id, orderer_id, swiper_id, eatery_id, status')
     .eq('id', id)
     .single()
 
@@ -40,19 +40,36 @@ export async function PATCH(
     return apiError('Stripe onboarding must be completed first', 403)
   }
 
-  // Verify swiper has selected a school
+  // Verify swiper is registered and has a school
   const { data: profile } = await supabase
     .from('profiles')
-    .select('school_id')
+    .select('is_swiper, school_id')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.school_id) {
+  if (!profile?.is_swiper) {
+    return apiError('You must be a registered swiper to accept orders', 403)
+  }
+  if (!profile.school_id) {
     return apiError('You must select a school before accepting orders', 403)
   }
 
-  // Atomic update — 0 rows means race condition lost
-  const { data: updated, error } = await supabase
+  // Verify the order's eatery belongs to the swiper's school (prevents cross-school acceptance)
+  const { data: eatery } = await supabase
+    .from('eateries')
+    .select('school_id')
+    .eq('id', order.eatery_id)
+    .single()
+
+  if (!eatery || eatery.school_id !== profile.school_id) {
+    return apiError('This order is not from your school', 403)
+  }
+
+  // Atomic update — uses service client to bypass RLS (the accept operation sets swiper_id
+  // from null to the accepting user; no RLS policy covers this "claim" transition).
+  // All authorization checks above use the user client to ensure the swiper is eligible.
+  const service = createServiceClient()
+  const { data: updated, error } = await service
     .from('orders')
     .update({ swiper_id: user.id, status: 'accepted' as const })
     .eq('id', id)
@@ -66,9 +83,6 @@ export async function PATCH(
   if (error || !updated) {
     return apiError('Order was already accepted by another swiper', 409)
   }
-
-  // Create conversation for this order
-  const service = createServiceClient()
   const { error: convError } = await service
     .from('conversations')
     .insert({
