@@ -23,23 +23,23 @@ test.describe('Order Lifecycle', () => {
       .single()
     if (!school) throw new Error('No schools found')
 
-    const { data: eatery } = await supabase
-      .from('eateries')
-      .select('id')
-      .eq('school_id', school.id)
-      .eq('is_active', true)
-      .limit(1)
-      .single()
-    if (!eatery) throw new Error('No eateries found')
-
+    // Find an eatery that has at least one available menu item
     const { data: menuItem } = await supabase
       .from('menu_items')
-      .select('id, name, original_price_cents')
-      .eq('restaurant_id', eatery.id)
+      .select('id, name, original_price_cents, restaurant_id')
       .eq('is_available', true)
       .limit(1)
       .single()
     if (!menuItem) throw new Error('No menu items found')
+
+    const { data: eatery } = await supabase
+      .from('eateries')
+      .select('id')
+      .eq('id', menuItem.restaurant_id)
+      .eq('school_id', school.id)
+      .eq('is_active', true)
+      .single()
+    if (!eatery) throw new Error('No eateries found for school with menu items')
 
     const { data: { users } } = await supabase.auth.admin.listUsers()
     const user = users.find((u) => u.email === TEST_EMAIL)
@@ -58,7 +58,7 @@ test.describe('Order Lifecycle', () => {
         { onConflict: 'user_id' }
       )
 
-    // Insert test order directly — no guest_stripe_pm_id so auto-charge won't fire
+    // Insert test order directly as a guest order (satisfies orders_orderer_or_guest constraint)
     const { data: order } = await supabase
       .from('orders')
       .insert({
@@ -78,6 +78,8 @@ test.describe('Order Lifecycle', () => {
         tip_cents: 0,
         guest_name: 'Lifecycle Test',
         guest_phone: '+15005550006',
+        // Fake PM satisfies NOT NULL constraint; auto-charge will fail gracefully (test env)
+        guest_stripe_pm_id: 'pm_test_lifecycle',
       })
       .select('id')
       .single()

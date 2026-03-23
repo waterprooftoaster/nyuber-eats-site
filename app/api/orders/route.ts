@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   for (const item of items) {
     const mi = menuItemMap.get(item.menu_item_id)
     if (!mi) return apiError('Menu item not found', 400)
-    const effectivePrice = mi.market_price_cents ?? mi.original_price_cents
+    const effectivePrice = Math.round(mi.original_price_cents * 0.5)
     orderItems.push({
       menu_item_id: mi.id,
       name: mi.name,

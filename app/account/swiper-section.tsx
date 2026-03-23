@@ -48,23 +48,14 @@ export function SwiperSection({ profile, stripeAccount, schools }: Props) {
   async function handleLinkPayment() {
     setLinking(true)
     setError(null)
-    // Create Stripe account if not exists
-    const createRes = await fetch('/api/stripe/connect/create', { method: 'POST' })
-    if (!createRes.ok && createRes.status !== 409) {
-      const body = await createRes.json()
-      setError(body.error ?? 'Failed to create payment account')
+    const res = await fetch('/api/stripe/connect', { method: 'POST' })
+    if (!res.ok) {
+      const body = await res.json()
+      setError(body.error ?? 'Failed to set up payment account')
       setLinking(false)
       return
     }
-    // Get onboarding link
-    const onboardRes = await fetch('/api/stripe/connect/onboard')
-    if (!onboardRes.ok) {
-      const body = await onboardRes.json()
-      setError(body.error ?? 'Failed to get onboarding link')
-      setLinking(false)
-      return
-    }
-    const { url } = await onboardRes.json()
+    const { url } = await res.json()
     window.location.href = url
   }
 
@@ -213,14 +204,14 @@ function SwiperStatus({ profile, stripeConnected, schools }: SwiperStatusProps) 
   async function handleRelinkPayment() {
     setLinking(true)
     setError(null)
-    const onboardRes = await fetch('/api/stripe/connect/onboard')
-    if (!onboardRes.ok) {
-      const body = await onboardRes.json()
+    const res = await fetch('/api/stripe/connect', { method: 'POST' })
+    if (!res.ok) {
+      const body = await res.json()
       setError(body.error ?? 'Failed to get onboarding link')
       setLinking(false)
       return
     }
-    const { url } = await onboardRes.json()
+    const { url } = await res.json()
     window.location.href = url
   }
 

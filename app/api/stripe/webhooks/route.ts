@@ -51,13 +51,19 @@ export async function POST(request: NextRequest) {
         .single()
       if (!orderRow?.swiper_id) break
 
+      const amountTotal = session.amount_total ?? 0
+      // Read fee stored in session metadata; fall back to 20% of charge (10% of original)
+      const feeCents = session.metadata?.platform_fee_cents
+        ? parseInt(session.metadata.platform_fee_cents, 10)
+        : Math.round(amountTotal * 0.2)
+
       // Insert as pending so payment_intent.succeeded can advance it to succeeded
       const { error: upsertError } = await supabase.from('payments').upsert(
         {
           order_id: orderId,
           stripe_payment_intent_id: piId,
-          amount_cents: session.amount_total ?? 0,
-          platform_fee_cents: 100,
+          amount_cents: amountTotal,
+          platform_fee_cents: feeCents,
           status: 'pending',
           payee_id: orderRow.swiper_id,
           payer_id: orderRow.orderer_id ?? null,
@@ -95,7 +101,7 @@ export async function POST(request: NextRequest) {
       // Safety net: deactivate proxy session if not already done at 'completed'
       void deactivateProxySession(orderId)
       // Earnings = charge amount minus platform fee (avoids a DB round-trip)
-      const earningsCents = pi.amount - (pi.application_fee_amount ?? 100)
+      const earningsCents = pi.amount - (pi.application_fee_amount ?? Math.round(pi.amount * 0.2))
       void notifyPaymentReceived(orderId, earningsCents)
 
       break

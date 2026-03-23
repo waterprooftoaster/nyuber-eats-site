@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthenticatedUser } from '@/lib/api/helpers'
-import { PLATFORM_FEE_CENTS } from '@/lib/stripe/checkout'
+import { platformFeeCents } from '@/lib/pricing'
 
 type OrderItem = {
   name: string
@@ -99,8 +99,9 @@ export default async function SwiperDashboardPage() {
           ) : (
             <ul className="divide-y divide-gray-100">
               {orders.map((order) => {
-                // Swiper earnings per order = order total minus flat platform fee
-                const earned = order.total_cents - PLATFORM_FEE_CENTS
+                // Swiper earnings = user payment minus 10% platform fee (on items only)
+                const itemsCents = order.total_cents - order.tip_cents
+                const earned = order.total_cents - platformFeeCents(itemsCents)
                 return (
                   <li key={order.id} className="py-4 flex items-start justify-between gap-4">
                     <div className="min-w-0">

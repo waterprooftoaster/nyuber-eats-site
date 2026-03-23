@@ -45,6 +45,9 @@ export default defineConfig({
       },
       dependencies: ['setup'],
       testDir: './tests/e2e/authenticated',
+      // Run authenticated tests serially — all files share a single test user,
+      // so parallel execution causes state interference between test files.
+      workers: 1,
     },
   ],
   webServer: {

@@ -65,8 +65,11 @@ export async function PATCH(
     return apiError('This order is not from your school', 403)
   }
 
-  // Atomic update — 0 rows means race condition lost
-  const { data: updated, error } = await supabase
+  // Atomic update — uses service client to bypass RLS (the accept operation sets swiper_id
+  // from null to the accepting user; no RLS policy covers this "claim" transition).
+  // All authorization checks above use the user client to ensure the swiper is eligible.
+  const service = createServiceClient()
+  const { data: updated, error } = await service
     .from('orders')
     .update({ swiper_id: user.id, status: 'accepted' as const })
     .eq('id', id)
@@ -80,9 +83,6 @@ export async function PATCH(
   if (error || !updated) {
     return apiError('Order was already accepted by another swiper', 409)
   }
-
-  // Create conversation for this order
-  const service = createServiceClient()
   const { error: convError } = await service
     .from('conversations')
     .insert({

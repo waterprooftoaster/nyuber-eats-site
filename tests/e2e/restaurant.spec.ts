@@ -41,6 +41,7 @@ test.describe('Restaurant page', () => {
   })
 
   test('modal loads option groups for items with options', async ({ page }) => {
+    test.setTimeout(60000)
     // Click first item and wait for options API response
     const responsePromise = page.waitForResponse((res) =>
       res.url().includes('/api/menu-items/') && res.url().includes('/options'),

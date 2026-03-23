@@ -1,7 +1,8 @@
 import 'server-only'
 
 import { createServiceClient } from '@/lib/supabase/service'
-import { createPaymentIntent, PLATFORM_FEE_CENTS } from '@/lib/stripe/checkout'
+import { createPaymentIntent } from '@/lib/stripe/checkout'
+import { platformFeeCents } from '@/lib/pricing'
 import type { Order } from '@/lib/types/database'
 
 export async function autoChargeGuestOrder(order: Order) {
@@ -33,21 +34,23 @@ export async function autoChargeGuestOrder(order: Order) {
       return
     }
 
+    const itemsCents = order.total_cents - order.tip_cents
+    const fee = platformFeeCents(itemsCents)
+
     const paymentIntent = await createPaymentIntent({
       amountCents: order.total_cents,
       tipCents: order.tip_cents,
+      platformFeeCents: fee,
       stripeConnectedAccountId: stripeAccount.stripe_account_id,
       orderId: order.id,
       paymentMethodId: order.guest_stripe_pm_id,
     })
 
-    const platformFee = PLATFORM_FEE_CENTS
-
     await serviceClient.from('payments').insert({
       order_id: order.id,
       stripe_payment_intent_id: paymentIntent.id,
       amount_cents: order.total_cents + order.tip_cents,
-      platform_fee_cents: platformFee,
+      platform_fee_cents: fee,
       payer_id: null,
       payee_id: order.swiper_id,
     })

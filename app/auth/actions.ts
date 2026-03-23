@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const USERNAME_REGEX = /^[a-zA-Z0-9_.\-]+$/
+const USERNAME_REGEX = /^[a-zA-Z0-9_ .\-]+$/
 
 type ActionState =
   | { error: string }
@@ -119,6 +119,14 @@ export async function authenticate(
       return { error: error.message }
     }
 
+    if (!data.session) {
+      return { error: 'Account created. Please confirm your email before continuing.' }
+    }
+
+    // Explicitly persist the session — guards against SSR cookie adapter
+    // timing issues when the action returns a value instead of redirecting.
+    await supabase.auth.setSession(data.session)
+
     // New user always needs onboarding — no profile can exist yet
     return { needsOnboarding: true, email: data.user?.email ?? email }
   }
@@ -156,7 +164,7 @@ export async function completeOnboarding(
     return { error: 'Username must be between 1 and 50 characters.' }
   }
   if (!USERNAME_REGEX.test(username)) {
-    return { error: 'Username may only contain letters, numbers, underscores, hyphens, and periods.' }
+    return { error: 'Username may only contain letters, numbers, spaces, underscores, hyphens, and periods.' }
   }
 
   const supabase = await createClient()

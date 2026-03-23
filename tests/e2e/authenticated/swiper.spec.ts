@@ -101,6 +101,23 @@ test.describe('PATCH /api/profile — authenticated', () => {
 })
 
 test.describe('Account page — swiper section', () => {
+  test.beforeAll(async () => {
+    // Reset test user to non-swiper state before UI tests
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    )
+    const { data: existing } = await supabase.auth.admin.listUsers()
+    const user = existing?.users?.find((u) => u.email === 'test@goobereats.test')
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ is_swiper: false, school_id: null })
+        .eq('id', user.id)
+      await supabase.from('stripe_accounts').delete().eq('user_id', user.id)
+    }
+  })
+
   test('shows "Become a Swiper" section for non-swiper', async ({ page }) => {
     await page.goto('/account')
     await expect(page.getByText('Become a Swiper')).toBeVisible()

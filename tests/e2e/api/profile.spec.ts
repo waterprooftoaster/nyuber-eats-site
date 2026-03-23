@@ -8,15 +8,15 @@ test.describe('PATCH /api/profile — unauthenticated', () => {
     expect(res.status()).toBe(401)
   })
 
-  test('returns 400 with empty body', async ({ request }) => {
+  test('returns 401 with empty body (auth checked before validation)', async ({ request }) => {
     const res = await request.patch('/api/profile', { data: {} })
-    expect(res.status()).toBe(400)
+    expect(res.status()).toBe(401)
   })
 
-  test('returns 400 with invalid uuid school_id', async ({ request }) => {
+  test('returns 401 with invalid uuid school_id (auth checked before validation)', async ({ request }) => {
     const res = await request.patch('/api/profile', {
       data: { school_id: 'not-a-uuid' },
     })
-    expect(res.status()).toBe(400)
+    expect(res.status()).toBe(401)
   })
 })

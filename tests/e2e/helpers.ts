@@ -1,16 +1,36 @@
 import { type Page, expect } from '@playwright/test'
 
+// Minimum menu items required to satisfy test assertions (e.g. grid count >= 5)
+const MIN_MENU_ITEMS = 5
+
 /**
- * Navigate to the homepage and click the first restaurant card.
+ * Navigate to the homepage and click the first restaurant card that has
+ * at least MIN_MENU_ITEMS menu items. Skips restaurants with sparse or empty
+ * menus to keep tests deterministic.
  * Returns the restaurant page URL (e.g. /restaurant/{uuid}).
  */
 export async function navigateToFirstRestaurant(page: Page): Promise<string> {
   await page.goto('/')
-  const firstCard = page.locator('[data-testid="restaurant-card"]').first()
-  await expect(firstCard).toBeVisible()
-  await firstCard.click()
-  await page.waitForURL(/\/restaurant\//)
-  return page.url()
+  const cards = page.locator('[data-testid="restaurant-card"]')
+  await expect(cards.first()).toBeVisible()
+
+  const count = await cards.count()
+  for (let i = 0; i < count; i++) {
+    await cards.nth(i).click()
+    await page.waitForURL(/\/restaurant\//)
+
+    const menuItems = page.locator('[data-testid="menu-item-card"]')
+    const itemCount = await menuItems.count()
+    if (itemCount >= MIN_MENU_ITEMS) {
+      return page.url()
+    }
+
+    // Not enough items — go back and try next
+    await page.goto('/')
+    await expect(cards.first()).toBeVisible()
+  }
+
+  throw new Error(`No restaurant with ${MIN_MENU_ITEMS}+ menu items found on homepage`)
 }
 
 /**
