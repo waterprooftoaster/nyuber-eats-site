@@ -47,3 +47,7 @@ export async function createOnboardingLink(
     type: 'account_onboarding',
   })
 }
+
+export async function createLoginLink(stripeAccountId: string) {
+  return getStripe().accounts.createLoginLink(stripeAccountId)
+}
