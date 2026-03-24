@@ -122,6 +122,10 @@ test.describe('Order Lifecycle', () => {
     expect(dupRes.status()).toBe(409)
 
     // Fetch conversation and seed a delivery photo so completion can proceed
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    )
     const { data: conv } = await supabase
       .from('conversations')
       .select('id')
