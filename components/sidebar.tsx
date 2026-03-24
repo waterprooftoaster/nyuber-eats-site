@@ -13,7 +13,7 @@ interface Props {
 
 export function Sidebar({ user, isSwiper }: Props) {
   return (
-    <aside className="hidden lg:flex w-56 shrink-0 bg-white border-r border-black flex-col gap-1 p-3">
+    <aside className="hidden lg:flex w-56 shrink-0 bg-white border-r border-gray-200 flex-col gap-1 p-3">
       <Link href="/" className={navBtnClass}>
         <Home className="h-5 w-5" />
         Home

@@ -16,9 +16,10 @@ export async function Header() {
     : false
 
   return (
-    <header className="flex items-center justify-between bg-white border-b border-black px-6 py-4">
-      <Link href="/" className="text-black font-bold text-xl tracking-tight">
-        NYUber Eats
+    <header className="flex items-center justify-between bg-white border-b border-gray-200 px-6 py-4">
+      <Link href="/" className="flex items-center ml-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/goobereats.svg" alt="Goober Eats" className="h-6 w-auto relative" style = {{ top: '3px' }} />
       </Link>
 
       <div className="flex items-center gap-1">
