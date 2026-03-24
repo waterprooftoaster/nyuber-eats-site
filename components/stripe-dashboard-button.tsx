@@ -6,7 +6,7 @@ import { useState } from 'react'
 const navBtnClass =
   'flex items-center gap-3 w-full rounded-lg px-4 py-3 text-black text-sm font-medium hover:bg-black/10 transition-colors'
 
-export function StripeDashboardButton() {
+export function StripeDashboardButton({ className }: { className?: string }) {
   const [loading, setLoading] = useState(false)
 
   async function handleClick() {
@@ -21,7 +21,7 @@ export function StripeDashboardButton() {
   }
 
   return (
-    <button onClick={handleClick} disabled={loading} className={navBtnClass}>
+    <button onClick={handleClick} disabled={loading} className={className ?? navBtnClass}>
       <ExternalLink className="h-5 w-5" />
       {loading ? 'Loading…' : 'Stripe Dashboard'}
     </button>

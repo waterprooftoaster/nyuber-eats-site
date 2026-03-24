@@ -108,8 +108,8 @@ export function PendingOrdersList({ orders: initialOrders }: Props) {
 
       {/* Order Detail Dialog */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center">
-          <div className="bg-white rounded-lg max-w-md w-full mx-4 p-6 z-50 relative">
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-end md:items-center justify-center">
+          <div className="bg-white rounded-t-lg md:rounded-lg w-full md:max-w-md md:mx-4 p-6 z-50 relative">
             {/* Close */}
             <button
               onClick={() => { setSelectedOrder(null); setError(null) }}

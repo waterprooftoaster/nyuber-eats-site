@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthenticatedUser } from '@/lib/api/helpers'
 import { platformFeeCents } from '@/lib/pricing'
+import { StripeDashboardButton } from '@/components/stripe-dashboard-button'
 
 type OrderItem = {
   name: string
@@ -73,7 +74,7 @@ export default async function SwiperDashboardPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl p-8">
+      <div className="mx-auto max-w-2xl p-4 md:p-8">
         <h1 className="text-2xl font-bold mb-8">Swiper Dashboard</h1>
 
         {/* Earnings Summary */}
@@ -89,6 +90,12 @@ export default async function SwiperDashboardPage() {
               <p className="text-3xl font-bold">{completed_order_count}</p>
             </div>
           </div>
+        </section>
+
+        {/* Stripe Payouts */}
+        <section className="mb-10 md:hidden">
+          <h2 className="text-lg font-semibold mb-4">Payouts</h2>
+          <StripeDashboardButton className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors w-full" />
         </section>
 
         {/* Completed Orders */}

@@ -100,7 +100,7 @@ export function SwiperSection({ profile, stripeAccount, schools }: Props) {
           <p className="text-sm font-medium text-gray-700 mb-2">
             {schoolSaved ? '✓' : '○'} Step 1 — Select your school
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <select
               name="school_id"
               value={schoolId}
@@ -243,7 +243,7 @@ function SwiperStatus({ profile, stripeConnected, schools }: SwiperStatusProps) 
               </button>
             </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <select
                 name="school_id"
                 value={schoolId}
