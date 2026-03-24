@@ -66,7 +66,7 @@ export function CartPanel({ initialCart }: Props) {
       {/* Sliding panel — fixed to right edge, full viewport height */}
       <div
         ref={panelRef}
-        className="fixed right-0 top-0 z-50 flex h-screen w-full max-w-sm flex-col bg-white shadow-xl"
+        className="fixed right-0 top-0 z-50 flex h-screen w-full md:max-w-sm flex-col bg-white shadow-xl"
       >
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-4">
@@ -153,7 +153,7 @@ export function CartPanel({ initialCart }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => router.replace('/checkout')}
+              onClick={() => window.location.replace('/checkout')}
               className="block w-full rounded-none bg-black py-3 text-center text-sm font-semibold text-white hover:bg-gray-900"
             >
               Checkout

@@ -29,6 +29,6 @@ test.describe('Authenticated cart', () => {
     await expect(page.getByText(itemName!)).toBeVisible()
 
     // Checkout link should be visible
-    await expect(page.getByRole('link', { name: 'Checkout' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Checkout' })).toBeVisible()
   })
 })

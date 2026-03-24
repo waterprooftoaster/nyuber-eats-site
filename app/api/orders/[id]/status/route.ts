@@ -4,8 +4,14 @@ import { updateOrderStatusSchema } from '@/lib/types/api'
 import { canTransition } from '@/lib/orders/state-machine'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
 import { autoChargeGuestOrder } from '@/lib/orders/auto-charge'
-import { notifyOrderStatusChange } from '@/lib/twilio/notify'
+import { sendSystemMessage } from '@/lib/chat/system-messages'
 import type { Order, OrderStatus } from '@/lib/types/database'
+
+const STATUS_MESSAGES: Partial<Record<string, string>> = {
+  in_progress: 'Swiper is preparing your order',
+  completed: 'Order completed — check delivery photo',
+  cancelled: 'Order was cancelled',
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -56,6 +62,27 @@ export async function PATCH(
     }
   }
 
+  // Delivery photo required to complete an order
+  if (newStatus === 'completed') {
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('order_id', id)
+      .single()
+
+    if (conv) {
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', conv.id)
+        .eq('message_type', 'delivery_photo')
+
+      if (!count || count === 0) {
+        return apiError('A delivery photo is required to complete the order', 400)
+      }
+    }
+  }
+
   // Atomic: only update if status still matches what we read (prevents race)
   const { data: updated, error } = await supabase
     .from('orders')
@@ -76,7 +103,9 @@ export async function PATCH(
     await autoChargeGuestOrder(updated as Order)
   }
 
-  void notifyOrderStatusChange(updated as Order, newStatus as OrderStatus)
+  if (STATUS_MESSAGES[newStatus]) {
+    await sendSystemMessage(id, STATUS_MESSAGES[newStatus]!)
+  }
 
   // Strip guest payment method from response
   const { guest_stripe_pm_id: _, ...responseData } = updated

@@ -43,7 +43,7 @@ export default async function PendingOrdersPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-2xl p-8">
+      <div className="mx-auto max-w-2xl p-4 md:p-8">
         <h1 className="text-2xl font-bold mb-2">Pending Orders</h1>
         <p className="text-sm text-gray-500 mb-8">
           Orders from your school — oldest first. Tap an order to see details and accept it.

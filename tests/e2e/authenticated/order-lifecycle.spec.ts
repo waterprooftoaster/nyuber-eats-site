@@ -6,6 +6,7 @@ const FAKE_UUID = '00000000-0000-4000-8000-000000000099'
 
 let userId: string
 let orderId: string
+let conversationId: string
 
 test.describe('Order Lifecycle', () => {
   test.beforeAll(async () => {
@@ -119,6 +120,27 @@ test.describe('Order Lifecycle', () => {
     // Accept again → 409 race condition
     const dupRes = await request.fetch(`/api/orders/${orderId}/accept`, { method: 'PATCH' })
     expect(dupRes.status()).toBe(409)
+
+    // Fetch conversation and seed a delivery photo so completion can proceed
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    )
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('order_id', orderId)
+      .single()
+    if (!conv) throw new Error('Conversation not created after accept')
+    conversationId = conv.id
+
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender_id: userId,
+      message_type: 'delivery_photo',
+      image_url: 'https://example.com/test.jpg',
+      body: null,
+    })
 
     // Advance to in_progress
     const ipRes = await request.fetch(`/api/orders/${orderId}/status`, {

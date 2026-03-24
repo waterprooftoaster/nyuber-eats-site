@@ -83,9 +83,9 @@ Swipers must complete Stripe Connect onboarding before accepting orders. The flo
 
 Payments use `application_fee_amount` + `transfer_data.destination` so the $1 platform fee stays on the platform and the rest transfers to the swiper's account.
 
-### SMS Notifications (Twilio)
+### Chat and Notifications
 
-`lib/twilio/notify.ts` sends SMS on order status changes (`accepted`, `in_progress`, `completed`) and on new chat messages. Guests receive SMS at `guest_phone`; registered users at `profile.phone`. Twilio `StatusCallback` webhook is at `/api/sms/webhook`.
+Order status changes are surfaced via in-app Realtime chat (Supabase Realtime). The `messages` table is published to `supabase_realtime` for INSERT streaming. Delivery photo messages expire after 7 days; text/system messages expire after 48 hours, cleaned up hourly by `public.cleanup_expired_messages()`.
 
 ### API Conventions
 
@@ -112,7 +112,4 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
 SUPABASE_SECRET_KEY
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
-TWILIO_ACCOUNT_SID
-TWILIO_AUTH_TOKEN
-TWILIO_PHONE_NUMBER
 ```

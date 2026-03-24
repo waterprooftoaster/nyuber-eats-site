@@ -28,7 +28,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-const SCHOOL = { name: 'NYU', slug: 'nyu' }
+const SCHOOL = { name: 'New York University', slug: 'nyu' }
 
 interface OptionData {
   name: string
@@ -47,6 +47,7 @@ interface OptionGroupData {
 
 interface MenuItemData {
   name: string
+  group: string
   original_price_cents: number
   market_price_cents: number | null
   image_url: string
@@ -57,6 +58,7 @@ interface EateryData {
   name: string
   address: string
   image_url: string
+  groups: string[]
   menu_items: MenuItemData[]
 }
 
@@ -65,9 +67,11 @@ const EATERIES: EateryData[] = [
     name: "Joe's Pizza",
     address: '7 Carmine St, New York, NY 10014',
     image_url: 'https://picsum.photos/seed/joes-pizza/1200/500',
+    groups: ['Pizzas', 'Sides', 'Desserts'],
     menu_items: [
       {
         name: 'Margherita Pizza',
+        group: 'Pizzas',
         original_price_cents: 1200,
         market_price_cents: 1000,
         image_url: 'https://picsum.photos/seed/margherita/400/400',
@@ -98,6 +102,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Pepperoni Pizza',
+        group: 'Pizzas',
         original_price_cents: 1400,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/pepperoni/400/400',
@@ -117,6 +122,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Caesar Salad',
+        group: 'Sides',
         original_price_cents: 800,
         market_price_cents: 650,
         image_url: 'https://picsum.photos/seed/caesar-salad/400/400',
@@ -124,6 +130,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Garlic Bread',
+        group: 'Sides',
         original_price_cents: 400,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/garlic-bread/400/400',
@@ -131,6 +138,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Tiramisu',
+        group: 'Desserts',
         original_price_cents: 700,
         market_price_cents: 550,
         image_url: 'https://picsum.photos/seed/tiramisu/400/400',
@@ -142,9 +150,11 @@ const EATERIES: EateryData[] = [
     name: 'Sushi Palace',
     address: '100 W 4th St, New York, NY 10012',
     image_url: 'https://picsum.photos/seed/sushi-palace/1200/500',
+    groups: ['Rolls', 'Sashimi', 'Noodles', 'Appetizers'],
     menu_items: [
       {
         name: 'California Roll',
+        group: 'Rolls',
         original_price_cents: 900,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/california-roll/400/400',
@@ -152,6 +162,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Salmon Sashimi',
+        group: 'Sashimi',
         original_price_cents: 1500,
         market_price_cents: 1200,
         image_url: 'https://picsum.photos/seed/salmon-sashimi/400/400',
@@ -159,6 +170,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Ramen',
+        group: 'Noodles',
         original_price_cents: 1300,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/ramen/400/400',
@@ -189,6 +201,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Edamame',
+        group: 'Appetizers',
         original_price_cents: 500,
         market_price_cents: 350,
         image_url: 'https://picsum.photos/seed/edamame/400/400',
@@ -196,6 +209,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Miso Soup',
+        group: 'Appetizers',
         original_price_cents: 300,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/miso-soup/400/400',
@@ -207,9 +221,11 @@ const EATERIES: EateryData[] = [
     name: 'Burger Barn',
     address: '55 W 8th St, New York, NY 10011',
     image_url: 'https://picsum.photos/seed/burger-barn/1200/500',
+    groups: ['Burgers', 'Sides', 'Drinks'],
     menu_items: [
       {
         name: 'Classic Burger',
+        group: 'Burgers',
         original_price_cents: 1100,
         market_price_cents: 900,
         image_url: 'https://picsum.photos/seed/classic-burger/400/400',
@@ -239,6 +255,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Veggie Burger',
+        group: 'Burgers',
         original_price_cents: 1000,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/veggie-burger/400/400',
@@ -246,6 +263,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Fries',
+        group: 'Sides',
         original_price_cents: 400,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/fries/400/400',
@@ -264,6 +282,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Milkshake',
+        group: 'Drinks',
         original_price_cents: 600,
         market_price_cents: 500,
         image_url: 'https://picsum.photos/seed/milkshake/400/400',
@@ -283,6 +302,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Onion Rings',
+        group: 'Sides',
         original_price_cents: 450,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/onion-rings/400/400',
@@ -294,9 +314,11 @@ const EATERIES: EateryData[] = [
     name: 'Taco Fiesta',
     address: '200 Mercer St, New York, NY 10012',
     image_url: 'https://picsum.photos/seed/taco-fiesta/1200/500',
+    groups: ['Tacos', 'Burritos & Wraps', 'Sides'],
     menu_items: [
       {
         name: 'Chicken Taco',
+        group: 'Tacos',
         original_price_cents: 400,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/chicken-taco/400/400',
@@ -316,6 +338,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Beef Burrito',
+        group: 'Burritos & Wraps',
         original_price_cents: 1000,
         market_price_cents: 800,
         image_url: 'https://picsum.photos/seed/beef-burrito/400/400',
@@ -335,6 +358,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Quesadilla',
+        group: 'Burritos & Wraps',
         original_price_cents: 800,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/quesadilla/400/400',
@@ -354,6 +378,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Nachos',
+        group: 'Sides',
         original_price_cents: 900,
         market_price_cents: 750,
         image_url: 'https://picsum.photos/seed/nachos/400/400',
@@ -361,6 +386,7 @@ const EATERIES: EateryData[] = [
       },
       {
         name: 'Churros',
+        group: 'Sides',
         original_price_cents: 500,
         market_price_cents: null,
         image_url: 'https://picsum.photos/seed/churros/400/400',
@@ -428,22 +454,58 @@ async function seed() {
     }
 
     // Delete all existing menu items for this eatery (cascades to option groups/options)
-    const { error: deleteError } = await supabase
+    const { error: deleteItemsError } = await supabase
       .from('menu_items')
       .delete()
       .eq('restaurant_id', eateryId)
 
-    if (deleteError) {
-      console.error(`Error clearing menu items for "${eateryData.name}":`, deleteError)
+    if (deleteItemsError) {
+      console.error(`Error clearing menu items for "${eateryData.name}":`, deleteItemsError)
       process.exit(1)
+    }
+
+    // Delete all existing menu item groups for this eatery
+    const { error: deleteGroupsError } = await supabase
+      .from('menu_item_groups')
+      .delete()
+      .eq('eatery_id', eateryId)
+
+    if (deleteGroupsError) {
+      console.error(`Error clearing menu item groups for "${eateryData.name}":`, deleteGroupsError)
+      process.exit(1)
+    }
+
+    // Insert groups and build a name → id map
+    const groupIdByName = new Map<string, string>()
+
+    for (const groupName of eateryData.groups) {
+      const { data: group, error: groupError } = await supabase
+        .from('menu_item_groups')
+        .insert({ eatery_id: eateryId, name: groupName })
+        .select('id')
+        .single()
+
+      if (groupError || !group) {
+        console.error(`Error inserting group "${groupName}" for "${eateryData.name}":`, groupError)
+        process.exit(1)
+      }
+
+      groupIdByName.set(groupName, group.id)
     }
 
     // Insert menu items
     for (const itemData of eateryData.menu_items) {
+      const groupId = groupIdByName.get(itemData.group)
+      if (!groupId) {
+        console.error(`Unknown group "${itemData.group}" for item "${itemData.name}"`)
+        process.exit(1)
+      }
+
       const { data: menuItem, error: itemError } = await supabase
         .from('menu_items')
         .insert({
           restaurant_id: eateryId,
+          group_id: groupId,
           name: itemData.name,
           original_price_cents: itemData.original_price_cents,
           market_price_cents: itemData.market_price_cents,
@@ -459,26 +521,26 @@ async function seed() {
       }
 
       // Insert option groups and their options
-      for (const groupData of itemData.option_groups) {
-        const { data: group, error: groupError } = await supabase
+      for (const optGroupData of itemData.option_groups) {
+        const { data: optGroup, error: optGroupError } = await supabase
           .from('menu_item_option_groups')
           .insert({
             menu_item_id: menuItem.id,
-            name: groupData.name,
-            selection_type: groupData.selection_type,
-            is_required: groupData.is_required,
-            sort_order: groupData.sort_order,
+            name: optGroupData.name,
+            selection_type: optGroupData.selection_type,
+            is_required: optGroupData.is_required,
+            sort_order: optGroupData.sort_order,
           })
           .select('id')
           .single()
 
-        if (groupError || !group) {
-          console.error(`Error inserting option group "${groupData.name}":`, groupError)
+        if (optGroupError || !optGroup) {
+          console.error(`Error inserting option group "${optGroupData.name}":`, optGroupError)
           process.exit(1)
         }
 
-        const optionsToInsert = groupData.options.map((opt) => ({
-          option_group_id: group.id,
+        const optionsToInsert = optGroupData.options.map((opt) => ({
+          option_group_id: optGroup.id,
           name: opt.name,
           additional_price_cents: opt.additional_price_cents,
           is_default: opt.is_default,
@@ -490,13 +552,13 @@ async function seed() {
           .insert(optionsToInsert)
 
         if (optionsError) {
-          console.error(`Error inserting options for group "${groupData.name}":`, optionsError)
+          console.error(`Error inserting options for group "${optGroupData.name}":`, optionsError)
           process.exit(1)
         }
       }
     }
 
-    console.log(`  Seeded ${eateryData.menu_items.length} menu items for "${eateryData.name}"`)
+    console.log(`  Seeded ${eateryData.groups.length} groups, ${eateryData.menu_items.length} menu items for "${eateryData.name}"`)
   }
 
   console.log('Seed complete.')

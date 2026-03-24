@@ -36,6 +36,8 @@ export type CreateCheckoutInput = z.infer<typeof createCheckoutSchema>
 export const sendMessageSchema = z.object({
   order_id: z.string().uuid(),
   body: z.string().min(1).max(1000),
+  // delivery_photo messages are created via a separate upload endpoint (session 3)
+  message_type: z.enum(['text', 'system']).default('text'),
 })
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>

@@ -8,8 +8,9 @@ export async function createExpressAccount(userId: string, email: string) {
     email: email,
     business_type: 'individual',
     business_profile: {
-      mcc: '5812',
-      url: 'https://goobereats.net'
+      mcc: '7372',
+      url: 'https://goobereats.net',
+      product_description: "Peer-to-peer student meal swipe sharing app"
     },
     controller: {
       fees: {
@@ -46,4 +47,8 @@ export async function createOnboardingLink(
     refresh_url: refreshUrl,
     type: 'account_onboarding',
   })
+}
+
+export async function createLoginLink(stripeAccountId: string) {
+  return getStripe().accounts.createLoginLink(stripeAccountId)
 }

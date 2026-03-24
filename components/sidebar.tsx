@@ -1,6 +1,7 @@
 import Link from "next/link"
-import { ClipboardList, Home, LayoutDashboard, ShoppingCart, User } from "lucide-react"
+import { ClipboardList, Home, ShoppingCart, User } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { StripeDashboardButton } from "@/components/stripe-dashboard-button"
 
 const navBtnClass =
   "flex items-center gap-3 w-full rounded-lg px-4 py-3 text-black text-sm font-medium hover:bg-black/10 transition-colors"
@@ -12,7 +13,7 @@ interface Props {
 
 export function Sidebar({ user, isSwiper }: Props) {
   return (
-    <aside className="w-56 shrink-0 bg-white border-r border-black flex flex-col gap-1 p-3">
+    <aside className="hidden lg:flex w-56 shrink-0 bg-white border-r border-gray-200 flex-col gap-1 p-3">
       <Link href="/" className={navBtnClass}>
         <Home className="h-5 w-5" />
         Home
@@ -23,15 +24,18 @@ export function Sidebar({ user, isSwiper }: Props) {
       </Link>
       {user && isSwiper && (
         <>
-          <Link href="/swiper/dashboard" className={navBtnClass}>
-            <LayoutDashboard className="h-5 w-5" />
-            Swiper Dashboard
-          </Link>
           <Link href="/swiper/orders" className={navBtnClass}>
             <ClipboardList className="h-5 w-5" />
             Pending Orders
           </Link>
+          <StripeDashboardButton />
         </>
+      )}
+      {user && (
+        <Link href="/orders" className={navBtnClass}>
+          <ClipboardList className="h-5 w-5" />
+          My Orders
+        </Link>
       )}
       {user ? (
         <Link href="/account" className={navBtnClass}>

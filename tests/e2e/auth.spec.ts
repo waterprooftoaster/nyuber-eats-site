@@ -145,9 +145,10 @@ test.describe('Signup via form', () => {
     await expect(page.getByText('What should we call you?')).toBeVisible({ timeout: 15000 })
     await page.getByPlaceholder('Username').fill('jane doe')
 
-    // Enter-to-select in school combobox: type to filter, press Enter to pick first result
+    // Enter-to-select in school combobox: type to filter, arrow down to highlight, Enter to select
     const schoolInput = page.getByPlaceholder('Search schools...')
-    await schoolInput.fill('Test')
+    await schoolInput.fill('NYU')
+    await schoolInput.press('ArrowDown')
     await schoolInput.press('Enter')
 
     // Verify a school was selected (hidden input should have a value)

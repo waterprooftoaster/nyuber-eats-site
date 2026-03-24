@@ -24,16 +24,32 @@ export interface Eatery {
   updated_at: string
 }
 
+export interface MenuItemGroup {
+  id: string
+  eatery_id: string
+  name: string
+  created_at: string
+  updated_at: string
+}
+
 export interface MenuItem {
   id: string
   restaurant_id: string
   name: string
+  group_id: string
   original_price_cents: number
   market_price_cents: number | null
   image_url: string | null
   is_available: boolean
   created_at: string
   updated_at: string
+}
+
+export interface MenuGroupWithItems {
+  id: string
+  name: string
+  avg_discount_cents: number
+  items: Pick<MenuItem, 'id' | 'name' | 'original_price_cents' | 'market_price_cents' | 'image_url'>[]
 }
 
 export type SelectionType = 'single' | 'multiple'

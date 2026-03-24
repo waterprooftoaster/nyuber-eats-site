@@ -12,7 +12,7 @@ DECLARE
   v_school_id uuid;
 BEGIN
   INSERT INTO public.schools (name, slug)
-  VALUES ('NYU', 'nyu')
+  VALUES ('New York University', 'nyu')
   ON CONFLICT (slug) DO NOTHING;
 
   SELECT id INTO v_school_id FROM public.schools WHERE slug = 'nyu';
