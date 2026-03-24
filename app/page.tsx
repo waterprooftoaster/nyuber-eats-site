@@ -22,7 +22,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="grid grid-cols-5 gap-5 p-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 p-8">
         {(eateries ?? []).map((eatery) => (
           <RestaurantCard
             key={eatery.id}
