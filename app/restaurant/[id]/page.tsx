@@ -48,7 +48,7 @@ export default async function RestaurantPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-white pt-2">
-      <div className="max-w-[60rem] mx-auto -translate-x-28 px-4">
+      <div className="max-w-[60rem] mx-auto px-4">
         <RestaurantHero imageUrl={eatery.image_url} alt={eatery.name} />
 
         <div className="py-5">

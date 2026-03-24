@@ -153,7 +153,7 @@ export function CartPanel({ initialCart }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => router.replace('/checkout')}
+              onClick={() => window.location.replace('/checkout')}
               className="block w-full rounded-none bg-black py-3 text-center text-sm font-semibold text-white hover:bg-gray-900"
             >
               Checkout

@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NYUber Eats",
-  description: "Student meal-swipe marketplace at NYU",
+  title: "Goober Eats",
+  description: "Peer-to-peer student meal swipe sharing app",
 };
 
 export default async function RootLayout({
@@ -45,7 +45,7 @@ export default async function RootLayout({
         <Header />
         <div className="flex flex-1">
           <Sidebar user={user} isSwiper={isSwiper} />
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 px-6">
             {children}
           </div>
         </div>

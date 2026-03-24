@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ClipboardList, Home, LayoutDashboard, LogIn, ShoppingCart, User } from "lucide-react"
+import { ClipboardList, Home, LogIn, User } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getAuthenticatedUser } from "@/lib/api/helpers"
 import { HeaderCartButton } from "@/components/header-cart-button"
@@ -27,18 +27,10 @@ export async function Header() {
           <Link href="/" className={iconBtnClass} aria-label="Home">
             <Home className="h-5 w-5" />
           </Link>
-          <Link href="/cart" className={iconBtnClass} aria-label="Cart">
-            <ShoppingCart className="h-5 w-5" />
-          </Link>
           {user && isSwiper && (
-            <>
-              <Link href="/swiper/dashboard" className={iconBtnClass} aria-label="Swiper Dashboard">
-                <LayoutDashboard className="h-5 w-5" />
-              </Link>
-              <Link href="/swiper/orders" className={iconBtnClass} aria-label="Pending Orders">
-                <ClipboardList className="h-5 w-5" />
-              </Link>
-            </>
+            <Link href="/swiper/orders" className={iconBtnClass} aria-label="Pending Orders">
+              <ClipboardList className="h-5 w-5" />
+            </Link>
           )}
           {user ? (
             <Link href="/account" className={iconBtnClass} aria-label="Profile">

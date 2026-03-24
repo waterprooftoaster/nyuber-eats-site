@@ -28,7 +28,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-const SCHOOL = { name: 'NYU', slug: 'nyu' }
+const SCHOOL = { name: 'New York University', slug: 'nyu' }
 
 interface OptionData {
   name: string

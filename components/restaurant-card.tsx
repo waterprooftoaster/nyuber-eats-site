@@ -23,7 +23,7 @@ export function RestaurantCard({ id, name, imageUrl }: RestaurantCardProps) {
       <div
         className={cn(
           'relative w-full rounded-xl bg-gray-200',
-          'aspect-[2/1] overflow-hidden',
+          'h-36 overflow-hidden',
           'transition-shadow duration-200 group-hover:shadow-md',
         )}
       >
@@ -33,7 +33,7 @@ export function RestaurantCard({ id, name, imageUrl }: RestaurantCardProps) {
             alt={name}
             fill
             className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
           />
         )}
       </div>

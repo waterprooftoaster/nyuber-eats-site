@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ClipboardList, Home, LayoutDashboard, ShoppingCart, User } from "lucide-react"
+import { ClipboardList, Home, ShoppingCart, User } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { StripeDashboardButton } from "@/components/stripe-dashboard-button"
 
@@ -13,7 +13,7 @@ interface Props {
 
 export function Sidebar({ user, isSwiper }: Props) {
   return (
-    <aside className="hidden md:flex w-56 shrink-0 bg-white border-r border-black flex-col gap-1 p-3">
+    <aside className="hidden lg:flex w-56 shrink-0 bg-white border-r border-black flex-col gap-1 p-3">
       <Link href="/" className={navBtnClass}>
         <Home className="h-5 w-5" />
         Home
@@ -24,10 +24,6 @@ export function Sidebar({ user, isSwiper }: Props) {
       </Link>
       {user && isSwiper && (
         <>
-          <Link href="/swiper/dashboard" className={navBtnClass}>
-            <LayoutDashboard className="h-5 w-5" />
-            Swiper Dashboard
-          </Link>
           <Link href="/swiper/orders" className={navBtnClass}>
             <ClipboardList className="h-5 w-5" />
             Pending Orders
