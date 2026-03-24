@@ -10,7 +10,10 @@ export interface Message {
   id: string
   conversation_id: string
   sender_id: string | null
-  body: string
+  body: string | null
+  message_type: 'system' | 'text' | 'delivery_photo'
+  expires_at: string
+  image_url: string | null
   sent_at: string
   read_at: string | null
 }

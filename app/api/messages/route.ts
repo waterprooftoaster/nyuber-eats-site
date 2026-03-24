@@ -2,8 +2,6 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendMessageSchema } from '@/lib/types/api'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
-import { notifyNewMessage } from '@/lib/twilio/notify'
-
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const user = await getAuthenticatedUser(supabase)
@@ -14,7 +12,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return apiError(parsed.error.issues[0].message, 400)
   }
-  const { order_id, body: messageBody } = parsed.data
+  const { order_id, body: messageBody, message_type } = parsed.data
 
   // Look up conversation by order_id (RLS filters to participant)
   const { data: conversation } = await supabase
@@ -34,6 +32,7 @@ export async function POST(request: NextRequest) {
       conversation_id: conversation.id,
       sender_id: user.id,
       body: messageBody,
+      message_type,
     })
     .select()
     .single()
@@ -41,8 +40,6 @@ export async function POST(request: NextRequest) {
   if (error) {
     return apiError('Failed to send message', 500)
   }
-
-  void notifyNewMessage(order_id, user.id, messageBody)
 
   return apiSuccess(message, 201)
 }
