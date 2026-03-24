@@ -2,8 +2,6 @@ import { NextRequest } from 'next/server'
 import { getStripe } from '@/lib/stripe/client'
 import { createServiceClient } from '@/lib/supabase/service'
 import { apiError, apiSuccess } from '@/lib/api/helpers'
-import { deactivateProxySession } from '@/lib/twilio/proxy'
-import { notifyPaymentReceived } from '@/lib/twilio/notify'
 import type Stripe from 'stripe'
 
 // M-3: Validate metadata order_id values before trusting them in DB queries
@@ -97,12 +95,6 @@ export async function POST(request: NextRequest) {
         .update({ status: 'paid' })
         .eq('id', orderId)
         .in('status', ['pending', 'accepted', 'in_progress', 'completed'])
-
-      // Safety net: deactivate proxy session if not already done at 'completed'
-      void deactivateProxySession(orderId)
-      // Earnings = charge amount minus platform fee (avoids a DB round-trip)
-      const earningsCents = pi.amount - (pi.application_fee_amount ?? Math.round(pi.amount * 0.2))
-      void notifyPaymentReceived(orderId, earningsCents)
 
       break
     }

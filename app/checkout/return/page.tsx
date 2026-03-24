@@ -44,19 +44,22 @@ export default async function CheckoutReturnPage({ searchParams }: Props) {
   }
 
   let status: string | null = null
+  let sessionOrderId: string | undefined
+  let isAuthenticated = false
   try {
     const session = await getStripe().checkout.sessions.retrieve(session_id)
+    sessionOrderId = session.metadata?.order_id ?? undefined
 
     // H-2: For authenticated users, verify the session belongs to their order
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const orderId = session.metadata?.order_id
-      if (orderId) {
+      isAuthenticated = true
+      if (sessionOrderId) {
         const { data: order } = await supabase
           .from('orders')
           .select('orderer_id')
-          .eq('id', orderId)
+          .eq('id', sessionOrderId)
           .single()
         if (!order || order.orderer_id !== user.id) {
           return <FailurePage message="Payment session not found." href="/checkout" />
@@ -70,6 +73,9 @@ export default async function CheckoutReturnPage({ searchParams }: Props) {
   }
 
   if (status === 'complete') {
+    const trackingHref = isAuthenticated && sessionOrderId ? `/order/${sessionOrderId}/chat` : '/'
+    const trackingLabel = isAuthenticated && sessionOrderId ? 'Track your order' : 'Back to home'
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
@@ -89,10 +95,10 @@ export default async function CheckoutReturnPage({ searchParams }: Props) {
             We&apos;ll send you a text when a swiper picks up your order.
           </p>
           <Link
-            href="/"
+            href={trackingHref}
             className="mt-6 inline-block w-full rounded-none bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
           >
-            Back to home
+            {trackingLabel}
           </Link>
         </div>
       </div>

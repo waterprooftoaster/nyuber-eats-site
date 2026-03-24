@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
-import { notifyOrderStatusChange } from '@/lib/twilio/notify'
+import { sendSystemMessage } from '@/lib/chat/system-messages'
 import type { Order } from '@/lib/types/database'
 
 export async function PATCH(
@@ -99,7 +99,7 @@ export async function PATCH(
       .eq('order_id', updated.id)
   }
 
-  void notifyOrderStatusChange(updated as Order, 'accepted')
+  await sendSystemMessage(updated.id, 'Swiper accepted your order')
 
   return apiSuccess(updated)
 }
