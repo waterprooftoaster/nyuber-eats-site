@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const SIGNUP_EMAIL = 'signup-test@goobereats.test'
 const SIGNUP_PASSWORD = 'signup123456'
-const SIGNUP_USERNAME = 'signupuser'
+const SIGNUP_FULL_NAME = 'Signup User'
 
 test.describe('Authentication flow', () => {
   // Create test user via admin API (bypasses email rate limits) and ensure
@@ -40,13 +40,23 @@ test.describe('Authentication flow', () => {
     await page.getByPlaceholder('Enter your email').fill(SIGNUP_EMAIL)
     await page.getByRole('button', { name: 'Continue', exact: true }).click()
 
-    // Step 2: Enter password only (no confirm = sign in)
+    // Step 2: Enter password (user exists in auth → single password field, sign-in mode)
     await page.getByPlaceholder('Password', { exact: true }).fill(SIGNUP_PASSWORD)
-    await page.getByRole('button', { name: 'Submit' }).click()
+    await page.getByRole('button', { name: 'Sign In' }).click()
 
     // Step 3: Onboarding — server action detects missing profile and returns needsOnboarding
     await expect(page.getByText('What should we call you?')).toBeVisible({ timeout: 15000 })
-    await page.getByPlaceholder('Username').fill(SIGNUP_USERNAME)
+    await page.getByPlaceholder('Enter your full name').fill(SIGNUP_FULL_NAME)
+
+    // Select a school (now required) — type to filter, arrow down to highlight, Enter to select
+    const schoolInput = page.getByPlaceholder('Search schools...')
+    await schoolInput.fill('NYU')
+    await schoolInput.press('ArrowDown')
+    await schoolInput.press('Enter')
+
+    // Verify a school was selected (hidden input should have a value)
+    await expect(page.locator('input[name="school_id"]')).not.toHaveValue('')
+
     await page.getByRole('button', { name: 'Get Started' }).click()
 
     // Should redirect to homepage
@@ -67,9 +77,9 @@ test.describe('Authentication flow', () => {
     await page.getByPlaceholder('Enter your email').fill(SIGNUP_EMAIL)
     await page.getByRole('button', { name: 'Continue', exact: true }).click()
 
-    // Step 2: Enter password only (no confirm = sign in)
+    // Step 2: Enter password (existing user = sign-in mode)
     await page.getByPlaceholder('Password', { exact: true }).fill(SIGNUP_PASSWORD)
-    await page.getByRole('button', { name: 'Submit' }).click()
+    await page.getByRole('button', { name: 'Sign In' }).click()
 
     // Should redirect to homepage
     await page.waitForURL('/', { timeout: 15000 })
@@ -124,7 +134,7 @@ test.describe('Signup via form', () => {
     }
   })
 
-  test('signup with spaces in username, Enter-to-select school, onboarding completes', async ({
+  test('signup with full name, Enter-to-select school, onboarding completes', async ({
     page,
   }) => {
     test.setTimeout(60000)
@@ -136,14 +146,14 @@ test.describe('Signup via form', () => {
     await page.getByPlaceholder('Enter your email').fill(FORM_SIGNUP_EMAIL)
     await page.getByRole('button', { name: 'Continue', exact: true }).click()
 
-    // Step 2: Fill both password fields (signup flow)
+    // Step 2: Fill both password fields (new user → sign-up mode with two fields)
     await page.getByPlaceholder('Password', { exact: true }).fill(FORM_SIGNUP_PASSWORD)
     await page.getByPlaceholder('Confirm Password').fill(FORM_SIGNUP_PASSWORD)
-    await page.getByRole('button', { name: 'Submit' }).click()
+    await page.getByRole('button', { name: 'Sign Up' }).click()
 
-    // Step 3: Onboarding — username with a space
+    // Step 3: Onboarding — full name with spaces
     await expect(page.getByText('What should we call you?')).toBeVisible({ timeout: 15000 })
-    await page.getByPlaceholder('Username').fill('jane doe')
+    await page.getByPlaceholder('Enter your full name').fill('Jane Doe')
 
     // Enter-to-select in school combobox: type to filter, arrow down to highlight, Enter to select
     const schoolInput = page.getByPlaceholder('Search schools...')

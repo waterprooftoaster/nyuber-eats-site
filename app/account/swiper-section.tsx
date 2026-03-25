@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 type School = { id: string; name: string }
 
@@ -12,76 +13,14 @@ type Props = {
 }
 
 export function SwiperSection({ profile, stripeAccount, schools }: Props) {
-  const router = useRouter()
-
-  const [schoolId, setSchoolId] = useState<string>(profile.school_id ?? '')
-  const [schoolSaved, setSchoolSaved] = useState(profile.school_id !== null)
-  const [saving, setSaving] = useState(false)
-  const [linking, setLinking] = useState(false)
-  const [activating, setActivating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [schoolSavedMsg, setSchoolSavedMsg] = useState(false)
-
-  const stripeConnected = stripeAccount?.onboarding_complete === true
-
-  async function handleSaveSchool() {
-    if (!schoolId) return
-    setSaving(true)
-    setError(null)
-    const res = await fetch('/api/profile', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ school_id: schoolId }),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to save school')
-      return
-    }
-    setSchoolSaved(true)
-    setSchoolSavedMsg(true)
-    setTimeout(() => setSchoolSavedMsg(false), 3000)
-    router.refresh()
-  }
-
-  async function handleLinkPayment() {
-    setLinking(true)
-    setError(null)
-    const res = await fetch('/api/stripe/connect', { method: 'POST' })
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to set up payment account')
-      setLinking(false)
-      return
-    }
-    const { url } = await res.json()
-    window.location.href = url
-  }
-
-  async function handleActivate() {
-    setActivating(true)
-    setError(null)
-    const res = await fetch('/api/profile', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_swiper: true }),
-    })
-    setActivating(false)
-    if (!res.ok) {
-      const body = await res.json()
-      setError(body.error ?? 'Failed to activate swiper status')
-      return
-    }
-    router.refresh()
-  }
-
   if (profile.is_swiper) {
-    return <SwiperStatus
-      profile={profile}
-      stripeConnected={stripeConnected}
-      schools={schools}
-    />
+    return (
+      <SwiperStatus
+        profile={profile}
+        stripeConnected={stripeAccount?.onboarding_complete === true}
+        schools={schools}
+      />
+    )
   }
 
   return (
@@ -92,72 +31,12 @@ export function SwiperSection({ profile, stripeAccount, schools }: Props) {
         <p className="text-sm text-gray-500 mb-4">
           Fulfill orders using your meal plan and earn $6 per item.
         </p>
-
-        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
-
-        {/* Step 1: School */}
-        <div className="mb-4">
-          <p className="text-sm font-medium text-gray-700 mb-2">
-            {schoolSaved ? '✓' : '○'} Step 1 — Select your school
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <select
-              name="school_id"
-              value={schoolId}
-              onChange={(e) => {
-                setSchoolId(e.target.value)
-                setSchoolSaved(false)
-              }}
-              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <option value="">Select a school…</option>
-              {schools.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleSaveSchool}
-              disabled={saving || !schoolId || schoolId === profile.school_id}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              {saving ? 'Saving…' : 'Save School'}
-            </button>
-          </div>
-          {schoolSavedMsg && (
-            <p className="text-sm text-green-600 mt-1">School saved</p>
-          )}
-        </div>
-
-        {/* Step 2: Payment */}
-        <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-2">
-            {stripeConnected ? '✓' : '○'} Step 2 — Link your payment account
-          </p>
-          {stripeConnected ? (
-            <p className="text-sm text-green-600">Payment account connected.</p>
-          ) : (
-            <button
-              onClick={handleLinkPayment}
-              disabled={linking || !schoolSaved}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              {linking ? 'Opening Stripe…' : 'Link Payment Account'}
-            </button>
-          )}
-        </div>
-
-        {/* Activate */}
-        {schoolSaved && stripeConnected && (
-          <button
-            onClick={handleActivate}
-            disabled={activating}
-            className="w-full rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
-          >
-            {activating ? 'Activating…' : 'Activate Swiper Status'}
-          </button>
-        )}
+        <Link
+          href="/swiper-registration"
+          className="inline-block rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800"
+        >
+          Get Started
+        </Link>
       </div>
     </div>
   )

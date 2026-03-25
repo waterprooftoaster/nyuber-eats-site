@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function ChatView({ orderId, currentUserId, orderStatus }: Props) {
-  const { messages, conversation, isLoading, error, sendMessage, markAsRead } =
+  const { messages, conversation, isLoading, error, sendMessage } =
     useMessages(orderId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const isClosed = CLOSED_STATUSES.includes(orderStatus)
@@ -24,13 +24,6 @@ export function ChatView({ orderId, currentUserId, orderStatus }: Props) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  // Mark messages as read when conversation loads and on new messages
-  useEffect(() => {
-    if (messages.length > 0) {
-      markAsRead()
-    }
-  }, [messages, markAsRead])
 
   if (isLoading) {
     return (
@@ -51,6 +44,11 @@ export function ChatView({ orderId, currentUserId, orderStatus }: Props) {
   return (
     <div className="flex h-full flex-col">
       <ChatBanner status={orderStatus} />
+      <p className="px-4 py-2 text-xs text-gray-500 italic border-b border-gray-100">
+        {currentUserId === conversation.orderer_id
+          ? 'Type here to contact your swiper.'
+          : 'Contact the orderer in this chat.'}
+      </p>
       <ChatThread
         messages={messages}
         conversation={conversation}

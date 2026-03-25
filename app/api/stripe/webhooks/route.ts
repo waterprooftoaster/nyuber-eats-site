@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         // H-4: Verify the account belongs to this platform before updating
         const { data: existing } = await supabase
           .from('stripe_accounts')
-          .select('id')
+          .select('id, user_id')
           .eq('stripe_account_id', account.id)
           .maybeSingle()
         if (!existing) break
@@ -126,6 +126,25 @@ export async function POST(request: NextRequest) {
           .from('stripe_accounts')
           .update({ onboarding_complete: true })
           .eq('stripe_account_id', account.id)
+
+        // Auto-activate swiper status if school is set
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', existing.user_id)
+          .single()
+
+        if (profile?.school_id) {
+          await supabase
+            .from('profiles')
+            .update({ is_swiper: true })
+            .eq('id', existing.user_id)
+            .eq('is_swiper', false)
+        } else {
+          console.warn(
+            `account.updated: skipping is_swiper activation for user ${existing.user_id} — no school_id set`
+          )
+        }
       }
       break
     }

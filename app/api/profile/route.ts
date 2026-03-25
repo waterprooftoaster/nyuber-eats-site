@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest) {
       .from('profiles')
       .select('school_id')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     const effectiveSchoolId = school_id ?? profile?.school_id
     if (!effectiveSchoolId) {
@@ -87,8 +87,14 @@ export async function PATCH(request: NextRequest) {
     .update(updates)
     .eq('id', user.id)
     .select()
-    .single()
+    .maybeSingle()
 
-  if (error) return apiError('Failed to update profile', 500)
+  if (error) return apiError(
+    process.env.NODE_ENV === 'development'
+      ? `Failed to update profile: ${error.message}`
+      : 'Failed to update profile',
+    500,
+  )
+  if (!updated) return apiError('Profile not found — complete account setup first', 404)
   return apiSuccess(updated)
 }

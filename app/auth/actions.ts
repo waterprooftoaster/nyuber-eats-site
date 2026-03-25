@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const USERNAME_REGEX = /^[a-zA-Z0-9_ .\-]+$/
+const FULL_NAME_REGEX = /^[\p{L} \-']+$/u
 
 type ActionState =
   | { error: string }
@@ -94,7 +94,11 @@ export async function authenticate(
 ): Promise<ActionState> {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
-  const confirmPassword = formData.get('confirm_password') as string
+  const rawConfirm = formData.get('confirm_password')
+  // Distinguish sign-up (field present in DOM) from sign-in (field absent).
+  // formData.get returns null when the field isn't rendered at all.
+  const isSignUp = rawConfirm !== null && rawConfirm !== undefined
+  const confirmPassword = rawConfirm as string
 
   if (!email || !EMAIL_REGEX.test(email)) {
     return { error: 'Please enter a valid email address.' }
@@ -105,18 +109,18 @@ export async function authenticate(
 
   const supabase = await createClient()
 
-  if (confirmPassword) {
+  if (isSignUp) {
     // Sign-up flow
     if (password.length < 6) {
       return { error: 'Password must be at least 6 characters.' }
     }
-    if (confirmPassword !== password) {
+    if (!confirmPassword || confirmPassword !== password) {
       return { error: 'Passwords do not match.' }
     }
 
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
-      return { error: error.message }
+      return { error: 'Could not create account. Please try again.' }
     }
 
     if (!data.session) {
@@ -139,12 +143,15 @@ export async function authenticate(
 
   // Check if returning user has a profile
   if (data.user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', data.user.id)
-      .single()
+      .maybeSingle()
 
+    if (profileError) {
+      return { error: 'Could not verify account status. Please try again.' }
+    }
     if (!profile) {
       return { needsOnboarding: true, email: data.user.email ?? email }
     }
@@ -157,14 +164,17 @@ export async function completeOnboarding(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const username = (formData.get('username') as string)?.trim()
+  const fullName = (formData.get('full_name') as string)?.trim()
   const schoolId = formData.get('school_id') as string | null
 
-  if (!username || username.length < 1 || username.length > 50) {
-    return { error: 'Username must be between 1 and 50 characters.' }
+  if (!fullName || fullName.length < 1 || fullName.length > 100) {
+    return { error: 'Full name must be between 1 and 100 characters.' }
   }
-  if (!USERNAME_REGEX.test(username)) {
-    return { error: 'Username may only contain letters, numbers, spaces, underscores, hyphens, and periods.' }
+  if (!FULL_NAME_REGEX.test(fullName)) {
+    return { error: 'Full name may only contain letters, spaces, hyphens, and apostrophes.' }
+  }
+  if (!schoolId) {
+    return { error: 'Please select your school.' }
   }
 
   const supabase = await createClient()
@@ -182,15 +192,12 @@ export async function completeOnboarding(
     .from('profiles')
     .insert({
       id: user.id,
-      username,
+      full_name: fullName,
       email: user.email,
-      school_id: schoolId || null,
+      school_id: schoolId,
     })
 
   if (error) {
-    if (error.code === '23505' && error.details?.includes('username')) {
-      return { error: 'That username is already taken.' }
-    }
     return { error: 'Could not create profile. Please try again.' }
   }
 
