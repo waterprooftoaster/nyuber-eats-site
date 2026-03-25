@@ -118,9 +118,6 @@ export function ChatThread({ messages, conversation, currentUserId, messagesEndR
                     {message.body}
                   </div>
                 )}
-                {message.read_at && (
-                  <span className="mt-0.5 px-1 text-[10px] text-gray-400">✓</span>
-                )}
               </div>
             )
           })}

@@ -10,10 +10,9 @@ interface UseMessagesResult {
   isLoading: boolean
   error: string | null
   sendMessage: (body: string) => Promise<void>
-  markAsRead: () => Promise<void>
 }
 
-export function useMessages(orderId: string): UseMessagesResult {
+export function useMessages(orderId: string | null): UseMessagesResult {
   const [messages, setMessages] = useState<Message[]>([])
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -21,6 +20,13 @@ export function useMessages(orderId: string): UseMessagesResult {
 
   // Initial fetch
   useEffect(() => {
+    if (!orderId) {
+      setMessages([])
+      setConversation(null)
+      setIsLoading(false)
+      setError(null)
+      return
+    }
     let cancelled = false
     async function load() {
       setIsLoading(true)
@@ -93,13 +99,5 @@ export function useMessages(orderId: string): UseMessagesResult {
     [orderId]
   )
 
-  const markAsRead = useCallback(async () => {
-    try {
-      await fetch(`/api/messages/${orderId}/read`, { method: 'PATCH' })
-    } catch {
-      // Read receipts are best-effort; silently ignore failures
-    }
-  }, [orderId])
-
-  return { messages, conversation, isLoading, error, sendMessage, markAsRead }
+  return { messages, conversation, isLoading, error, sendMessage }
 }

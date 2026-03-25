@@ -126,13 +126,4 @@ describe('ChatThread', () => {
     expect(link).toHaveAttribute('target', '_blank')
   })
 
-  it('shows read receipt checkmark when read_at is set', () => {
-    renderThread([makeMessage({ read_at: '2026-03-23T10:05:00Z' })])
-    expect(screen.getByText('✓')).toBeInTheDocument()
-  })
-
-  it('does not show read receipt when read_at is null', () => {
-    renderThread([makeMessage({ read_at: null })])
-    expect(screen.queryByText('✓')).not.toBeInTheDocument()
-  })
 })

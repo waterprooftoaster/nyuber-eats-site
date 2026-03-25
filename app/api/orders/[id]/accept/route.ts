@@ -43,7 +43,7 @@ export async function PATCH(
   // Verify swiper is registered and has a school
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_swiper, school_id')
+    .select('is_swiper, school_id, username')
     .eq('id', user.id)
     .single()
 
@@ -57,7 +57,7 @@ export async function PATCH(
   // Verify the order's eatery belongs to the swiper's school (prevents cross-school acceptance)
   const { data: eatery } = await supabase
     .from('eateries')
-    .select('school_id')
+    .select('school_id, name')
     .eq('id', order.eatery_id)
     .single()
 
@@ -99,7 +99,14 @@ export async function PATCH(
       .eq('order_id', updated.id)
   }
 
-  await sendSystemMessage(updated.id, 'Swiper accepted your order')
+  const swiperName = profile.username ?? 'A swiper'
+  const eateryName = eatery?.name ?? 'the eatery'
+  const orderShortId = updated.id.slice(0, 8)
+
+  await sendSystemMessage(
+    updated.id,
+    `${swiperName} accepted order #${orderShortId} at ${eateryName}.`
+  )
 
   return apiSuccess(updated)
 }

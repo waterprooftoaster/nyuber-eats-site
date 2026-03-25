@@ -221,34 +221,4 @@ describe('useMessages', () => {
     })
   })
 
-  describe('markAsRead', () => {
-    it('calls PATCH /api/messages/[orderId]/read', async () => {
-      const { result } = renderHook(() => useMessages(ORDER_ID))
-      await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-      mockFetch.mockResolvedValueOnce(mockJsonOk({ count: 2 }))
-
-      await act(async () => {
-        await result.current.markAsRead()
-      })
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        `/api/messages/${ORDER_ID}/read`,
-        expect.objectContaining({ method: 'PATCH' })
-      )
-    })
-
-    it('does not throw on failure', async () => {
-      const { result } = renderHook(() => useMessages(ORDER_ID))
-      await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-      mockFetch.mockRejectedValueOnce(new Error('network error'))
-
-      await expect(
-        act(async () => {
-          await result.current.markAsRead()
-        })
-      ).resolves.not.toThrow()
-    })
-  })
 })
