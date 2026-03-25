@@ -13,18 +13,16 @@ export default async function SwiperRegistrationPage() {
       .from('profiles')
       .select('school_id, is_swiper')
       .eq('id', user.id)
-      .single(),
+      .maybeSingle(),
     supabase.from('schools').select('id, name').order('name'),
   ])
 
-  if (profileResult.error) {
-    throw new Error(`Failed to load profile: ${profileResult.error.message}`)
-  }
   if (schoolsResult.error) {
     throw new Error(`Failed to load schools: ${schoolsResult.error.message}`)
   }
 
   const profile = profileResult.data
+  if (!profile) redirect('/auth/login?onboarding=true')
   if (profile.is_swiper) redirect('/account')
 
   const schools = schoolsResult.data
