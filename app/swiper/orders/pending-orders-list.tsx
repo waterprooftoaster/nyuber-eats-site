@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useChatPanel } from '@/components/chat-panel'
 import type { OrderItem } from '@/lib/types/database'
 
 type EateryRef = { id: string; name: string } | null
@@ -39,7 +40,7 @@ export function PendingOrdersList({ orders: initialOrders }: Props) {
   const [accepting, setAccepting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
-  const [acceptedOrderId, setAcceptedOrderId] = useState<string | null>(null)
+  const { openPanel } = useChatPanel()
 
   async function handleAccept() {
     if (!selectedOrder || accepting) return
@@ -51,10 +52,10 @@ export function PendingOrdersList({ orders: initialOrders }: Props) {
       const acceptedId = selectedOrder.id
       setOrders((prev) => prev.filter((o) => o.id !== acceptedId))
       setSelectedOrder(null)
-      setAcceptedOrderId(acceptedId)
+      openPanel(acceptedId)
       const name = selectedOrder.eateries?.name ?? 'the eatery'
       setSuccessMsg(`Order accepted! Head to ${name} to start filling it.`)
-      setTimeout(() => { setSuccessMsg(null); setAcceptedOrderId(null) }, 5000)
+      setTimeout(() => { setSuccessMsg(null) }, 5000)
     } else if (res.status === 409) {
       // Race condition — another swiper got there first
       setOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id))
@@ -69,16 +70,8 @@ export function PendingOrdersList({ orders: initialOrders }: Props) {
   return (
     <div>
       {successMsg && (
-        <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center justify-between gap-4">
-          <span>{successMsg}</span>
-          {acceptedOrderId && (
-            <a
-              href={`/order/${acceptedOrderId}/chat`}
-              className="shrink-0 font-medium underline underline-offset-2"
-            >
-              Go to chat →
-            </a>
-          )}
+        <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+          {successMsg}
         </div>
       )}
       {error && !selectedOrder && (

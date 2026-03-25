@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthenticatedUser } from '@/lib/api/helpers'
-import { ChatView } from './chat-view'
+import { ChatView } from '@/components/chat/chat-view'
 
 const uuidSchema = z.string().uuid()
 
