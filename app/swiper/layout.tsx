@@ -17,7 +17,7 @@ export default async function SwiperLayout({
     .eq('id', user.id)
     .single()
 
-  if (!profile?.is_swiper) redirect('/account?notice=swiper_required')
+  if (!profile?.is_swiper) redirect('/swiper-registration')
 
   return <>{children}</>
 }

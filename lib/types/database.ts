@@ -1,6 +1,6 @@
 export interface Profile {
   id: string
-  username: string
+  full_name: string
   email: string
   school_id: string | null
   is_swiper: boolean

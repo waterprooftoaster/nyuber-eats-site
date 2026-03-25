@@ -34,7 +34,10 @@ export function LoginForm({
   )
   const [email, setEmail] = useState(userEmail ?? '')
   const [emailError, setEmailError] = useState('')
+  const [emailExists, setEmailExists] = useState<boolean | null>(null)
+  const [checkingEmail, setCheckingEmail] = useState(false)
   const [selectedSchool, setSelectedSchool] = useState<{ value: string; label: string } | null>(null)
+  const [schoolSearchQuery, setSchoolSearchQuery] = useState('')
 
   const [authState, formAction, authPending] = useActionState(authenticate, null)
   const [onboardingState, onboardingAction, onboardingPending] = useActionState(
@@ -51,14 +54,28 @@ export function LoginForm({
   }, [authState])
 
   const inputStyle =
-    'block w-full h-12 rounded-md border border-gray-300 px-3 py-2 focus:border-black focus:outline-none focus:ring-1 focus:ring-black'
+    'block w-full h-12 rounded-md border border-gray-300 px-3 py-2 text-base focus:border-black focus:outline-none focus:ring-1 focus:ring-black'
 
-  function handleContinue() {
+  async function handleContinue() {
     if (!email || !EMAIL_REGEX.test(email)) {
       setEmailError('Please enter a valid email address.')
       return
     }
     setEmailError('')
+    setCheckingEmail(true)
+
+    try {
+      const res = await fetch(
+        '/api/auth/check-email?email=' + encodeURIComponent(email),
+      )
+      const body = await res.json()
+      setEmailExists(body.exists ?? false)
+    } catch {
+      // Default to sign-up mode on network error
+      setEmailExists(false)
+    }
+
+    setCheckingEmail(false)
     setStep('password')
   }
 
@@ -96,9 +113,10 @@ export function LoginForm({
             <button
               type="button"
               onClick={handleContinue}
-              className="w-full h-12 rounded-md bg-black text-white hover:bg-gray-800"
+              disabled={checkingEmail}
+              className="w-full h-12 rounded-md bg-black text-white hover:bg-gray-800 disabled:opacity-50"
             >
-              Continue
+              {checkingEmail ? '...' : 'Continue'}
             </button>
 
             <form action={signInWithGoogle}>
@@ -138,24 +156,27 @@ export function LoginForm({
                 className={inputStyle}
               />
 
-              <div>
+              {emailExists === false && (
                 <input
                   name="confirm_password"
                   type="password"
                   placeholder="Confirm Password"
+                  required
+                  minLength={6}
                   className={inputStyle}
                 />
-                <p className="mt-1 text-xs text-gray-400">
-                  Leave empty to sign in to an existing account
-                </p>
-              </div>
+              )}
 
               <button
                 type="submit"
                 disabled={authPending}
                 className="w-full h-12 rounded-md bg-black text-white hover:bg-gray-800 disabled:opacity-50"
               >
-                {authPending ? '...' : 'Submit'}
+                {authPending
+                  ? '...'
+                  : emailExists
+                    ? 'Sign In'
+                    : 'Sign Up'}
               </button>
             </form>
           </>
@@ -175,13 +196,11 @@ export function LoginForm({
                   What should we call you?
                 </p>
                 <input
-                  name="username"
+                  name="full_name"
                   type="text"
-                  placeholder="Username"
+                  placeholder="Enter your full name"
                   required
-                  maxLength={50}
-                  pattern="[a-zA-Z0-9_ .\-]+"
-                  title="Letters, numbers, spaces, underscores, hyphens, and periods only"
+                  maxLength={100}
                   className={inputStyle}
                 />
               </div>
@@ -190,20 +209,20 @@ export function LoginForm({
                 <p className="text-base font-medium text-gray-900">
                   What school do you go to?
                 </p>
-                <p className="text-sm text-gray-400">
-                  don't worry, you can leave this blank
-                </p>
                 <Combobox
                   value={selectedSchool}
                   onValueChange={(value) =>
                     setSelectedSchool(value as { value: string; label: string } | null)
+                  }
+                  onInputValueChange={(inputValue) =>
+                    setSchoolSearchQuery(inputValue)
                   }
                   isItemEqualToValue={(a, b) => a.value === b.value}
                   autoHighlight
                 >
                   <ComboboxInput
                     placeholder="Search schools..."
-                    className="h-12 rounded-md border-gray-300 focus:border-black focus:ring-1 focus:ring-black"
+                    className="h-12 rounded-md border-gray-300 text-base focus:border-black focus:ring-1 focus:ring-black"
                   />
                   <ComboboxContent>
                     <ComboboxList>
@@ -211,11 +230,14 @@ export function LoginForm({
                         <ComboboxItem
                           key={school.id}
                           value={{ value: school.id, label: school.name }}
+                          className="py-3 text-base"
                         >
                           {school.name}
                         </ComboboxItem>
                       ))}
-                      <ComboboxEmpty>No schools found</ComboboxEmpty>
+                      {schoolSearchQuery.trim().length > 0 && (
+                        <ComboboxEmpty>No schools found</ComboboxEmpty>
+                      )}
                     </ComboboxList>
                   </ComboboxContent>
                 </Combobox>
@@ -224,7 +246,7 @@ export function LoginForm({
 
               <button
                 type="submit"
-                disabled={onboardingPending}
+                disabled={onboardingPending || !selectedSchool}
                 className="w-full h-12 rounded-md bg-black text-white hover:bg-gray-800 disabled:opacity-50"
               >
                 {onboardingPending ? '...' : 'Get Started'}

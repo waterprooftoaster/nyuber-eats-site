@@ -124,9 +124,9 @@ test.describe('Account page — swiper section', () => {
   })
 
   test('school select and save updates profile', async ({ page, request }) => {
-    await page.goto('/account')
+    await page.goto('/swiper-registration')
     // Select the first school option (not the placeholder)
-    const select = page.locator('select[name="school_id"]')
+    const select = page.locator('select')
     await expect(select).toBeVisible()
     const options = await select.locator('option').all()
     // Find a non-empty option value
@@ -141,6 +141,7 @@ test.describe('Account page — swiper section', () => {
     expect(targetValue).toBeTruthy()
     await select.selectOption(targetValue)
     await page.getByRole('button', { name: 'Save School' }).click()
-    await expect(page.getByText('School saved')).toBeVisible()
+    // After saving, the school name should be displayed and the Continue button enabled
+    await expect(page.getByRole('button', { name: 'Continue to Payment Setup' })).toBeEnabled()
   })
 })

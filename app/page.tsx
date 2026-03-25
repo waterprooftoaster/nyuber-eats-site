@@ -1,9 +1,17 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { RestaurantCard } from '@/components/restaurant-card'
 import { seedDevEateries } from '@/lib/dev-seed'
 
-export default async function Home() {
-  const supabase = await createClient()
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string }>
+}) {
+  const [{ notice }, supabase] = await Promise.all([
+    searchParams,
+    createClient(),
+  ])
 
   let { data: eateries } = await supabase
     .from('eateries')
@@ -29,6 +37,15 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-white space-y-8 p-4">
+      {notice === 'swiper_activated' && (
+        <div className="mx-auto max-w-2xl rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+          You&apos;re now a swiper! Head to{' '}
+          <Link href="/swiper/orders" className="font-medium underline">
+            Pending Orders
+          </Link>{' '}
+          to start fulfilling orders.
+        </div>
+      )}
       {[...grouped.entries()].map(([schoolName, schoolEateries]) => (
         <section key={schoolName}>
           <h2 className="text-lg font-bold text-gray-900 mb-3">{schoolName}</h2>

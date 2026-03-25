@@ -20,33 +20,60 @@ export default async function StripeOnboardCompletePage() {
   // Sync Stripe status directly to avoid webhook race condition:
   // the account.updated webhook may not have arrived yet when the user
   // is redirected back here, so we check Stripe directly and update the DB.
-  if (stripeRow && !stripeRow.onboarding_complete) {
+  const serviceClient = createServiceClient()
+  let onboardingComplete = stripeRow?.onboarding_complete ?? false
+  if (stripeRow && !onboardingComplete) {
     try {
       const account = await getStripe().accounts.retrieve(stripeRow.stripe_account_id)
       if (account.details_submitted && account.charges_enabled) {
-        await createServiceClient()
+        await serviceClient
           .from('stripe_accounts')
           .update({ onboarding_complete: true })
           .eq('stripe_account_id', stripeRow.stripe_account_id)
+        onboardingComplete = true
       }
     } catch {
       // non-fatal: the webhook will update the DB if this call fails
     }
   }
 
+  // Auto-activate swiper if school is set and onboarding is complete
+  if (onboardingComplete) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('school_id, is_swiper')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('onboard/complete: failed to fetch profile', profileError)
+    }
+
+    if (profile?.school_id && !profile.is_swiper) {
+      await serviceClient
+        .from('profiles')
+        .update({ is_swiper: true })
+        .eq('id', user.id)
+        .eq('is_swiper', false)
+    }
+
+    redirect('/?notice=swiper_activated')
+  }
+
+  // Fallback: onboarding not yet complete or school not set
   return (
     <main className="min-h-screen bg-white">
       <div className="mx-auto max-w-md p-8">
-        <h1 className="text-2xl font-bold mb-4">Payment account linked!</h1>
+        <h1 className="text-2xl font-bold mb-4">Almost there!</h1>
         <p className="text-gray-600 mb-8">
-          Your Stripe account is connected. Return to your account settings to
-          activate your swiper status.
+          Your payment account setup is still being processed. Please complete
+          your school selection to finish registration.
         </p>
         <Link
-          href="/account"
+          href="/swiper-registration"
           className="inline-block rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
         >
-          Return to account settings
+          Return to swiper registration
         </Link>
       </div>
     </main>
