@@ -1,9 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthenticatedUser } from '@/lib/api/helpers'
 import { RestaurantCard } from '@/components/restaurant-card'
+import { BecomeSwiperBanner } from '@/components/become-swiper-banner'
+import { BringToSchoolBanner } from '@/components/bring-to-school-banner'
 import { seedDevEateries } from '@/lib/dev-seed'
 
 export default async function Home() {
   const supabase = await createClient()
+  const user = await getAuthenticatedUser(supabase)
+  const isSwiper = user
+    ? ((await supabase.from('profiles').select('is_swiper').eq('id', user.id).single())
+        .data?.is_swiper ?? false)
+    : false
 
   let { data: eateries } = await supabase
     .from('eateries')
@@ -29,6 +37,14 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-white space-y-8 p-4">
+      <section className="mb-12">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          {!isSwiper && (
+            <BecomeSwiperBanner ctaHref={user ? '/account' : '/auth/login'} />
+          )}
+          <BringToSchoolBanner />
+        </div>
+      </section>
       {[...grouped.entries()].map(([schoolName, schoolEateries]) => (
         <section key={schoolName}>
           <h2 className="text-lg font-bold text-gray-900 mb-3">{schoolName}</h2>
