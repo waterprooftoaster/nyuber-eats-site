@@ -6,6 +6,7 @@ import { ChatBanner } from '@/components/chat/chat-banner'
 import { ChatStatusMessages } from '@/components/chat/chat-status-messages'
 import { ChatThread } from '@/components/chat/chat-thread'
 import { ChatInput } from '@/components/chat/chat-input'
+import { CompletionBanner } from '@/components/chat/completion-banner'
 
 const CLOSED_STATUSES = ['completed', 'paid', 'cancelled']
 
@@ -61,6 +62,9 @@ export function ChatView({ orderId, currentUserId, orderStatus }: Props) {
         </>
       ) : (
         <div className="flex-1" />
+      )}
+      {currentUserId === conversation?.swiper_id && orderStatus === 'in_progress' && (
+        <CompletionBanner orderId={orderId} />
       )}
       <ChatInput orderId={orderId} onSend={sendMessage} disabled={isClosed || !conversation} />
     </div>
