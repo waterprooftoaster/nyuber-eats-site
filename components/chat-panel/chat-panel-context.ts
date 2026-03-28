@@ -3,13 +3,18 @@
 import { createContext, useContext } from 'react'
 import type { OrderStatus } from '@/lib/types/database'
 
-export interface ChatPanelState {
-  activeOrderId: string | null
+export interface OrderEntry {
+  orderId: string
+  status: OrderStatus
   isExpanded: boolean
-  orderStatus: OrderStatus | null
+}
+
+export interface ChatPanelState {
+  orders: Record<string, OrderEntry>
   openPanel: (orderId: string, status?: OrderStatus) => void
-  closePanel: () => void
-  toggleMinimize: () => void
+  closePanel: (orderId: string) => void
+  toggleMinimize: (orderId: string) => void
+  updateOrderStatus: (orderId: string, status: OrderStatus) => void
 }
 
 export const ChatPanelContext = createContext<ChatPanelState | null>(null)

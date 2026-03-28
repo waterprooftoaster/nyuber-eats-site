@@ -70,9 +70,9 @@ Never use the service client in client-side code or where RLS should apply.
 
 ### Guest vs Authenticated Ordering
 
-Guest users (unauthenticated) can place orders but must provide `guest_name`, `guest_phone`, and a Stripe PaymentMethod ID (`guest_stripe_pm_id`). Because the anon role has no INSERT grant on `orders`, guest order creation uses the service client. When a swiper accepts a guest order, `lib/orders/auto-charge.ts` fires the Stripe PaymentIntent immediately using the stored PM, then clears `guest_stripe_pm_id` from the record.
+Guest users (unauthenticated) can place orders but must provide `guest_name` and a Stripe PaymentMethod ID (`guest_stripe_pm_id`). Because the anon role has no INSERT grant on `orders`, guest order creation uses the service client. When a swiper accepts a guest order, `lib/orders/auto-charge.ts` fires the Stripe PaymentIntent immediately using the stored PM, then clears `guest_stripe_pm_id` from the record.
 
-Authenticated orderers go through an embedded Stripe Checkout session (`/api/stripe/checkout-session`).
+Orders go through an embedded Stripe Checkout session (`/api/stripe/checkout-session`). Do not add order to db until payment intent suceeds.
 
 ### Stripe Connect
 
