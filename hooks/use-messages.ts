@@ -33,6 +33,10 @@ export function useMessages(orderId: string | null): UseMessagesResult {
       setError(null)
       try {
         const res = await fetch(`/api/messages/${orderId}`)
+        if (res.status === 404) {
+          // No conversation yet — expected for pending orders before a swiper connects
+          return
+        }
         if (!res.ok) {
           const json = await res.json().catch(() => ({}))
           if (!cancelled) setError(json.error ?? 'Failed to load messages')
