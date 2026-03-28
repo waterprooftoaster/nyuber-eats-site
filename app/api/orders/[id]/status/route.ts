@@ -3,9 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { updateOrderStatusSchema } from '@/lib/types/api'
 import { canTransition } from '@/lib/orders/state-machine'
 import { apiError, apiSuccess, getAuthenticatedUser } from '@/lib/api/helpers'
-import { autoChargeGuestOrder } from '@/lib/orders/auto-charge'
+import { transferToSwiper } from '@/lib/stripe/transfer'
 import { sendSystemMessage } from '@/lib/chat/system-messages'
-import type { Order, OrderStatus } from '@/lib/types/database'
+import type { OrderStatus } from '@/lib/types/database'
 
 const STATUS_MESSAGES: Partial<Record<string, string>> = {
   in_progress: 'Swiper is preparing your order',
@@ -62,8 +62,19 @@ export async function PATCH(
     }
   }
 
-  // Delivery photo required to complete an order
+  // Completion guards: payment must exist + delivery photo required
   if (newStatus === 'completed') {
+    const { data: payment } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('order_id', id)
+      .eq('status', 'succeeded')
+      .maybeSingle()
+
+    if (!payment) {
+      return apiError('Order cannot be completed: payment not confirmed', 400)
+    }
+
     const { data: conv } = await supabase
       .from('conversations')
       .select('id')
@@ -90,7 +101,7 @@ export async function PATCH(
     .eq('id', id)
     .eq('status', order.status)
     .select(
-      'id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, guest_stripe_pm_id, created_at, updated_at'
+      'id, orderer_id, swiper_id, eatery_id, status, items, total_cents, tip_cents, special_instructions, guest_name, guest_phone, created_at, updated_at'
     )
     .single()
 
@@ -98,16 +109,14 @@ export async function PATCH(
     return apiError('Order status was changed by another request', 409)
   }
 
-  // Auto-charge guest orders on completion
-  if (newStatus === 'completed' && updated.guest_stripe_pm_id) {
-    await autoChargeGuestOrder(updated as Order)
+  // Transfer funds to swiper (payment captured at checkout for both guest and auth)
+  if (newStatus === 'completed' && updated.swiper_id) {
+    await transferToSwiper(updated.id, updated.swiper_id, updated.total_cents, updated.tip_cents)
   }
 
   if (STATUS_MESSAGES[newStatus]) {
     await sendSystemMessage(id, STATUS_MESSAGES[newStatus]!)
   }
 
-  // Strip guest payment method from response
-  const { guest_stripe_pm_id: _, ...responseData } = updated
-  return apiSuccess(responseData)
+  return apiSuccess(updated)
 }

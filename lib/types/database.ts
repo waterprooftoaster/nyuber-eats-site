@@ -98,6 +98,7 @@ export interface Order {
   orderer_id: string | null
   swiper_id: string | null
   eatery_id: string
+  stripe_payment_intent_id: string | null
   status: OrderStatus
   items: OrderItem[]
   total_cents: number
@@ -105,7 +106,6 @@ export interface Order {
   special_instructions: string | null
   guest_name: string | null
   guest_phone: string | null
-  guest_stripe_pm_id: string | null
   created_at: string
   updated_at: string
 }
@@ -118,7 +118,7 @@ export interface Payment {
   platform_fee_cents: number
   status: PaymentStatus
   payer_id: string | null
-  payee_id: string
+  payee_id: string | null
   created_at: string
 }
 

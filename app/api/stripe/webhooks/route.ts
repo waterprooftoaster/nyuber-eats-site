@@ -1,154 +1,227 @@
 import { NextRequest } from 'next/server'
 import { getStripe } from '@/lib/stripe/client'
 import { createServiceClient } from '@/lib/supabase/service'
+import { loadCart } from '@/lib/cart/load'
+import { platformFeeCents } from '@/lib/pricing'
 import { apiError, apiSuccess } from '@/lib/api/helpers'
 import type Stripe from 'stripe'
 
-// M-3: Validate metadata order_id values before trusting them in DB queries
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
-  // H-6: Fail clearly on misconfiguration rather than silently accepting any signature
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-  if (!webhookSecret) {
-    console.error('STRIPE_WEBHOOK_SECRET is not set')
-    return apiError('Server configuration error', 500)
-  }
-
-  const body = await request.text()
-  const signature = request.headers.get('stripe-signature')
-  if (!signature) return apiError('Missing stripe-signature header', 400)
-
-  let event: Stripe.Event
-  try {
-    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
-  } catch {
-    return apiError('Invalid webhook signature', 400)
-  }
-
-  const supabase = createServiceClient()
-
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session
-      const orderId = session.metadata?.order_id
-      const piId =
-        typeof session.payment_intent === 'string'
-          ? session.payment_intent
-          : session.payment_intent?.id
-      // M-3: Validate order_id is a real UUID before touching the DB
-      if (!orderId || !piId || !UUID_RE.test(orderId)) break
-
-      // Fetch payee_id (swiper) — required NOT NULL field on payments table
-      const { data: orderRow } = await supabase
-        .from('orders')
-        .select('swiper_id, orderer_id')
-        .eq('id', orderId)
-        .single()
-      if (!orderRow?.swiper_id) break
-
-      const amountTotal = session.amount_total ?? 0
-      // Read fee stored in session metadata; fall back to 20% of charge (10% of original)
-      const feeCents = session.metadata?.platform_fee_cents
-        ? parseInt(session.metadata.platform_fee_cents, 10)
-        : Math.round(amountTotal * 0.2)
-
-      // Insert as pending so payment_intent.succeeded can advance it to succeeded
-      const { error: upsertError } = await supabase.from('payments').upsert(
-        {
-          order_id: orderId,
-          stripe_payment_intent_id: piId,
-          amount_cents: amountTotal,
-          platform_fee_cents: feeCents,
-          status: 'pending',
-          payee_id: orderRow.swiper_id,
-          payer_id: orderRow.orderer_id ?? null,
-        },
-        { onConflict: 'stripe_payment_intent_id', ignoreDuplicates: true }
-      )
-      if (upsertError) {
-        console.error('checkout.session.completed: failed to upsert payment', upsertError)
-        return apiError('Failed to record payment', 500)
-      }
-      break
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    if (!webhookSecret) {
+        console.error('STRIPE_WEBHOOK_SECRET is not set')
+        return apiError('Server configuration error', 500)
     }
 
-    case 'payment_intent.succeeded': {
-      const pi = event.data.object as Stripe.PaymentIntent
-      const orderId = pi.metadata.order_id
-      // M-3: Validate order_id UUID
-      if (!orderId || !UUID_RE.test(orderId)) break
+    const body = await request.text()
+    const signature = request.headers.get('stripe-signature')
+    if (!signature) return apiError('Missing stripe-signature header', 400)
 
-      // Idempotent: only update if still pending
-      await supabase
-        .from('payments')
-        .update({ status: 'succeeded' })
-        .eq('stripe_payment_intent_id', pi.id)
-        .eq('status', 'pending')
-
-      // H-5: Allow all pre-paid statuses — checkout-session orders are 'pending'
-      // at payment time, not 'completed' (which is only for the post-completion flow)
-      await supabase
-        .from('orders')
-        .update({ status: 'paid' })
-        .eq('id', orderId)
-        .in('status', ['pending', 'accepted', 'in_progress', 'completed'])
-
-      break
+    let event: Stripe.Event
+    try {
+        event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
+    } catch {
+        return apiError('Invalid webhook signature', 400)
     }
 
-    case 'payment_intent.payment_failed': {
-      const pi = event.data.object as Stripe.PaymentIntent
+    const supabase = createServiceClient()
 
-      await supabase
-        .from('payments')
-        .update({ status: 'failed' })
-        .eq('stripe_payment_intent_id', pi.id)
-        .eq('status', 'pending')
+    switch (event.type) {
+        case 'payment_intent.succeeded': {
+            const pi = event.data.object as Stripe.PaymentIntent
+            const meta = pi.metadata
 
-      break
-    }
+            // Checkout flow: cart_id in metadata means this PI came from Stripe Checkout
+            const cartId = meta.cart_id
+            if (!cartId) break
 
-    case 'account.updated': {
-      const account = event.data.object as Stripe.Account
-      if (account.details_submitted && account.charges_enabled) {
-        // H-4: Verify the account belongs to this platform before updating
-        const { data: existing } = await supabase
-          .from('stripe_accounts')
-          .select('id, user_id')
-          .eq('stripe_account_id', account.id)
-          .maybeSingle()
-        if (!existing) break
+            const eateryId = meta.eatery_id
+            const isGuest = meta.is_guest === 'true'
+            const guestName = isGuest ? meta.guest_name : null
+            const ordererId = isGuest ? null : meta.orderer_id
 
-        await supabase
-          .from('stripe_accounts')
-          .update({ onboarding_complete: true })
-          .eq('stripe_account_id', account.id)
+            // Validate required fields
+            if (isGuest && !guestName) break
+            if (!isGuest && !ordererId) break
+            if (!eateryId) break
 
-        // Auto-activate swiper status if school is set
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', existing.user_id)
-          .single()
+            // Validate UUIDs
+            if (!UUID_RE.test(cartId) || !UUID_RE.test(eateryId)) break
+            if (ordererId && !UUID_RE.test(ordererId)) break
 
-        if (profile?.school_id) {
-          await supabase
-            .from('profiles')
-            .update({ is_swiper: true })
-            .eq('id', existing.user_id)
-            .eq('is_swiper', false)
-        } else {
-          console.warn(
-            `account.updated: skipping is_swiper activation for user ${existing.user_id} — no school_id set`
-          )
+            // Idempotency: skip if payment already recorded for this PI
+            const { data: existingPayment } = await supabase
+                .from('payments')
+                .select('id')
+                .eq('stripe_payment_intent_id', pi.id)
+                .maybeSingle()
+            if (existingPayment) break
+
+            // Load cart to get items + pricing
+            const { data: cartRow } = await supabase
+                .from('carts')
+                .select('id, eatery_id, user_id')
+                .eq('id', cartId)
+                .single()
+
+            if (!cartRow) {
+                console.error(`payment_intent.succeeded: cart ${cartId} not found`)
+                break
+            }
+
+            // Cross-check: for auth orders, metadata orderer_id must match cart owner
+            if (ordererId && cartRow.user_id && ordererId !== cartRow.user_id) {
+                console.error(`payment_intent.succeeded: orderer_id ${ordererId} does not match cart owner ${cartRow.user_id}`)
+                break
+            }
+
+            const loaded = await loadCart(supabase, cartRow)
+            if (loaded.items.length === 0) {
+                console.error(`payment_intent.succeeded: cart ${cartId} is empty`)
+                break
+            }
+
+            const orderItems = loaded.items.map((item) => ({
+                menu_item_id: item.menu_item_id,
+                name: item.name,
+                price_cents: item.price_cents,
+                quantity: item.quantity,
+            }))
+
+            const totalItemCents = loaded.items.reduce(
+                (sum, item) => sum + item.quantity * item.price_cents,
+                0
+            )
+            // Bounds-check tip from metadata (mirrors checkout-session cap)
+            const rawTip = parseInt(meta.tip_cents ?? '0', 10)
+            const tipCents = Math.max(0, Math.min(rawTip, totalItemCents))
+            const totalCents = totalItemCents + tipCents
+            const feeCents = platformFeeCents(totalItemCents)
+            const specialInstructions = (meta.special_instructions ?? '').slice(0, 500) || null
+
+            // Create order — unified path for guest and auth.
+            // stripe_payment_intent_id has a unique index, so on retry (when
+            // the previous attempt created the order but payment insert failed)
+            // the insert fails and we recover the existing order below.
+            let orderId: string
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .insert({
+                    orderer_id: ordererId,
+                    eatery_id: cartRow.eatery_id,
+                    stripe_payment_intent_id: pi.id,
+                    items: orderItems,
+                    total_cents: totalCents,
+                    tip_cents: tipCents,
+                    special_instructions: specialInstructions,
+                    guest_name: guestName,
+                    guest_phone: null,
+                })
+                .select('id')
+                .single()
+
+            if (orderError) {
+                // Retry path: order already exists from a previous attempt
+                const { data: existing } = await supabase
+                    .from('orders')
+                    .select('id')
+                    .eq('stripe_payment_intent_id', pi.id)
+                    .single()
+
+                if (!existing) {
+                    console.error('payment_intent.succeeded: failed to create order', orderError)
+                    return apiError('Failed to create order', 500)
+                }
+                orderId = existing.id
+            } else {
+                orderId = order.id
+            }
+
+            // Record payment — if this fails, return 500 so Stripe retries.
+            // On retry the order already exists (recovered above via PI ID),
+            // so we just need to insert the payment record.
+            const { error: paymentError } = await supabase.from('payments').insert({
+                order_id: orderId,
+                stripe_payment_intent_id: pi.id,
+                amount_cents: totalCents,
+                platform_fee_cents: feeCents,
+                status: 'succeeded',
+                payer_id: ordererId,
+                payee_id: null,
+            })
+
+            if (paymentError) {
+                console.error('payment_intent.succeeded: failed to record payment', paymentError)
+                return apiError('Failed to record payment', 500)
+            }
+
+            // Clean up cart
+            await supabase.from('cart_items').delete().eq('cart_id', cartId)
+            await supabase.from('carts').delete().eq('id', cartId)
+
+            break
         }
-      }
-      break
-    }
-  }
 
-  return apiSuccess({ received: true })
+        case 'payment_intent.payment_failed': {
+            // No-op for checkout flow: no order exists in our DB until
+            // payment_intent.succeeded fires. Stripe's embedded checkout keeps
+            // the user on the payment page on failure.
+            break
+        }
+
+        case 'checkout.session.completed': {
+            // No-op: order creation is handled by payment_intent.succeeded.
+            // Log for observability.
+            const session = event.data.object as Stripe.Checkout.Session
+            console.log(`checkout.session.completed: session ${session.id} (no-op)`)
+            break
+        }
+
+        case 'checkout.session.expired': {
+            // No-op: no order exists to clean up.
+            break
+        }
+
+        case 'account.updated': {
+            const account = event.data.object as Stripe.Account
+            if (account.details_submitted && account.charges_enabled) {
+                const { data: existing } = await supabase
+                    .from('stripe_accounts')
+                    .select('id, user_id')
+                    .eq('stripe_account_id', account.id)
+                    .maybeSingle()
+                if (!existing) break
+
+                await supabase
+                    .from('stripe_accounts')
+                    .update({ onboarding_complete: true })
+                    .eq('stripe_account_id', account.id)
+
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('school_id')
+                    .eq('id', existing.user_id)
+                    .single()
+
+                if (profile?.school_id) {
+                    await supabase
+                        .from('profiles')
+                        .update({ is_swiper: true })
+                        .eq('id', existing.user_id)
+                        .eq('is_swiper', false)
+                } else {
+                    console.warn(
+                        `account.updated: skipping is_swiper activation for user ${existing.user_id} — no school_id set`
+                    )
+                }
+            }
+            break
+        }
+    }
+
+    return apiSuccess({ received: true })
 }

@@ -37,7 +37,7 @@ E2E tests auto-start the dev server if not already running. The `authenticated/`
 | `menu_item_option_groups` / `menu_item_options` | Modifiers (size, toppings) with `single`/`multiple` selection |
 | `profiles` | Extends Supabase auth users; has `school_id`, `phone` for SMS |
 | `orders` | Core entity — see order lifecycle below |
-| `payments` | Created after Stripe PaymentIntent; tracks `platform_fee_cents` ($1 flat) |
+| `payments` | Created after Stripe PaymentIntent; tracks `platform_fee_cents` (10% of original price) |
 | `stripe_accounts` | Swiper's Stripe Connect account; must have `onboarding_complete = true` to accept orders |
 | `carts` / `cart_items` | Session-based for guests (cookie `cart_session_id`), user-based for auth'd users |
 | `conversations` / `messages` | Created when a swiper accepts an order; supports orderer↔swiper in-order chat |
@@ -51,10 +51,10 @@ pending → accepted → in_progress → completed → paid
                  ↘ cancelled (from any state except paid)
 ```
 
-- **Orderer** creates an order (`POST /api/orders`) and it enters `pending`
+- **Orderer** pays via Stripe Checkout (`POST /api/stripe/checkout-session`). The `payment_intent.succeeded` webhook creates the order in `pending` state.
 - **Swiper** browses the pending queue and pulls (`PATCH /api/orders/[id]/accept`) — atomic update prevents race conditions
 - Swiper advances status via `PATCH /api/orders/[id]/status`
-- Payment triggered via `PATCH /api/orders/[id]/pay` or Stripe webhook
+- When swiper completes, `lib/stripe/transfer.ts` transfers funds from platform to swiper's connected account and advances to `paid`
 
 ### Two Supabase Clients
 
@@ -70,9 +70,13 @@ Never use the service client in client-side code or where RLS should apply.
 
 ### Guest vs Authenticated Ordering
 
-Guest users (unauthenticated) can place orders but must provide `guest_name`, `guest_phone`, and a Stripe PaymentMethod ID (`guest_stripe_pm_id`). Because the anon role has no INSERT grant on `orders`, guest order creation uses the service client. When a swiper accepts a guest order, `lib/orders/auto-charge.ts` fires the Stripe PaymentIntent immediately using the stored PM, then clears `guest_stripe_pm_id` from the record.
+Both guest and authenticated users go through the same embedded Stripe Checkout session (`/api/stripe/checkout-session`) with a single unified code path. The order is NOT created in the DB until the `payment_intent.succeeded` webhook fires — if the user backs out mid-checkout, nothing hits the DB.
 
-Authenticated orderers go through an embedded Stripe Checkout session (`/api/stripe/checkout-session`).
+The only differences:
+- **Guest**: `guest_name` in Stripe metadata, `orderer_id` is NULL
+- **Auth**: `orderer_id` in Stripe metadata, no `guest_name`
+
+When a swiper completes any order, `lib/stripe/transfer.ts` creates a Stripe Transfer from the platform to the swiper's connected account.
 
 ### Stripe Connect
 
@@ -81,7 +85,7 @@ Swipers must complete Stripe Connect onboarding before accepting orders. The flo
 2. `POST /api/stripe/connect/onboard` — returns an onboarding URL
 3. `account.updated` webhook marks `onboarding_complete = true`
 
-Payments use `application_fee_amount` + `transfer_data.destination` so the $1 platform fee stays on the platform and the rest transfers to the swiper's account.
+Payments use `application_fee_amount` + `transfer_data.destination` so the 10% platform fee (20% of user payment) stays on the platform and the rest transfers to the swiper's account.
 
 ### Chat and Notifications
 

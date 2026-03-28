@@ -1,34 +1,72 @@
 import { test, expect } from '@playwright/test'
-import { navigateToFirstRestaurant, getMenuItemId, getEateryIdFromUrl } from '../helpers'
+import { createClient } from '@supabase/supabase-js'
+
+const TEST_EMAIL = 'test@goobereats.test'
+
+let supabase: ReturnType<typeof createClient>
+let userId: string
+let orderId: string | null = null
 
 test.describe('Authenticated orders', () => {
-  let eateryId: string
-  let menuItemId: string
+  test.beforeAll(async () => {
+    supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    )
 
-  test.beforeAll(async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: '.auth/user.json',
-    })
-    const page = await context.newPage()
-    const url = await navigateToFirstRestaurant(page)
-    eateryId = getEateryIdFromUrl(url)
-    menuItemId = await getMenuItemId(page)
-    await page.close()
-    await context.close()
+    await supabase.rpc('seed_dev_eateries')
+
+    const {
+      data: { users },
+    } = await supabase.auth.admin.listUsers()
+    const user = users.find((u) => u.email === TEST_EMAIL)
+    if (!user) throw new Error('Test user not found')
+    userId = user.id
+
+    // Seed an order via direct DB insert (orders are only created via webhook in production)
+    const { data: eatery } = await supabase
+      .from('eateries')
+      .select('id')
+      .eq('is_active', true)
+      .limit(1)
+      .single()
+    if (!eatery) throw new Error('No eateries found')
+
+    const { data: menuItem } = await supabase
+      .from('menu_items')
+      .select('id, name, original_price_cents')
+      .eq('is_available', true)
+      .limit(1)
+      .single()
+    if (!menuItem) throw new Error('No menu items found')
+
+    const priceCents = Math.round(menuItem.original_price_cents * 0.5)
+    const { data: order } = await supabase
+      .from('orders')
+      .insert({
+        orderer_id: userId,
+        eatery_id: eatery.id,
+        items: [
+          {
+            menu_item_id: menuItem.id,
+            name: menuItem.name,
+            price_cents: priceCents,
+            quantity: 1,
+          },
+        ],
+        total_cents: priceCents,
+        tip_cents: 0,
+      })
+      .select('id')
+      .single()
+    if (!order) throw new Error('Failed to create test order')
+    orderId = order.id
   })
 
-  test('create order as logged-in user', async ({ request }) => {
-    const res = await request.post('/api/orders', {
-      data: {
-        eatery_id: eateryId,
-        items: [{ menu_item_id: menuItemId, quantity: 1 }],
-      },
-    })
-    expect(res.status()).toBe(201)
-    const body = await res.json()
-    expect(body.status).toBe('pending')
-    expect(body.orderer_id).toBeTruthy()
-    expect(body.total_cents).toBeGreaterThan(0)
+  test.afterAll(async () => {
+    if (orderId) {
+      await supabase.from('orders').delete().eq('id', orderId)
+    }
   })
 
   test('list own orders', async ({ request }) => {

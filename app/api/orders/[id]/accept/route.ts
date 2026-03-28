@@ -43,7 +43,7 @@ export async function PATCH(
   // Verify swiper is registered and has a school
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_swiper, school_id, username')
+    .select('is_swiper, school_id, full_name')
     .eq('id', user.id)
     .single()
 
@@ -99,7 +99,7 @@ export async function PATCH(
       .eq('order_id', updated.id)
   }
 
-  const swiperName = profile.username ?? 'A swiper'
+  const swiperName = profile.full_name ?? 'A swiper'
   const eateryName = eatery?.name ?? 'the eatery'
   const orderShortId = updated.id.slice(0, 8)
 

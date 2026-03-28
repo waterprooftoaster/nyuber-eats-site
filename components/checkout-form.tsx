@@ -19,7 +19,6 @@ export function CheckoutForm({ isGuest }: Props) {
 
   // Guest form state
   const [guestName, setGuestName] = useState('')
-  const [guestPhone, setGuestPhone] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const createSession = useCallback(async (body: Record<string, unknown>) => {
@@ -54,9 +53,9 @@ export function CheckoutForm({ isGuest }: Props) {
 
   function handleGuestSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!guestName.trim() || !guestPhone.trim()) return
+    if (!guestName.trim()) return
     setSubmitting(true)
-    createSession({ guest_name: guestName.trim(), guest_phone: guestPhone.trim() }).finally(() =>
+    createSession({ guest_name: guestName.trim() }).finally(() =>
       setSubmitting(false)
     )
   }
@@ -67,10 +66,7 @@ export function CheckoutForm({ isGuest }: Props) {
         <h2 className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
           Your info
         </h2>
-        <p className="mb-6 text-sm text-gray-600">
-          We&apos;ll send SMS updates about your order.
-        </p>
-        <form onSubmit={handleGuestSubmit} className="space-y-4">
+        <form onSubmit={handleGuestSubmit} className="mt-4 space-y-4">
           <div>
             <label htmlFor="guest-name" className="mb-1 block text-sm font-medium text-gray-700">
               Name
@@ -86,24 +82,9 @@ export function CheckoutForm({ isGuest }: Props) {
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
             />
           </div>
-          <div>
-            <label htmlFor="guest-phone" className="mb-1 block text-sm font-medium text-gray-700">
-              Phone number
-            </label>
-            <input
-              id="guest-phone"
-              type="tel"
-              required
-              autoComplete="tel"
-              value={guestPhone}
-              onChange={(e) => setGuestPhone(e.target.value)}
-              placeholder="+1 (555) 000-0000"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-            />
-          </div>
           <button
             type="submit"
-            disabled={submitting || !guestName.trim() || !guestPhone.trim()}
+            disabled={submitting || !guestName.trim()}
             className="w-full rounded-none bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-40"
           >
             {submitting ? 'Loading...' : 'Continue to payment'}

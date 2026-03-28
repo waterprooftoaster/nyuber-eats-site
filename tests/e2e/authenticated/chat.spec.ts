@@ -84,8 +84,6 @@ test.describe('Chat Flow', () => {
         total_cents: menuItem.original_price_cents,
         tip_cents: 0,
         guest_name: 'Chat Test',
-        guest_phone: '+15005550006',
-        guest_stripe_pm_id: 'pm_test_chat',
       })
       .select('id')
       .single()

@@ -78,9 +78,6 @@ test.describe('Order Lifecycle', () => {
         total_cents: menuItem.original_price_cents,
         tip_cents: 0,
         guest_name: 'Lifecycle Test',
-        guest_phone: '+15005550006',
-        // Fake PM satisfies NOT NULL constraint; auto-charge will fail gracefully (test env)
-        guest_stripe_pm_id: 'pm_test_lifecycle',
       })
       .select('id')
       .single()

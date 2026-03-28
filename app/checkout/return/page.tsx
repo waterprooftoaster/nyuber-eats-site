@@ -47,22 +47,30 @@ export default async function CheckoutReturnPage({ searchParams }: Props) {
   let sessionOrderId: string | undefined
   let isAuthenticated = false
   try {
-    const session = await getStripe().checkout.sessions.retrieve(session_id)
-    sessionOrderId = session.metadata?.order_id ?? undefined
+    const [session, supabase] = await Promise.all([
+      getStripe().checkout.sessions.retrieve(session_id),
+      createClient(),
+    ])
 
-    // H-2: For authenticated users, verify the session belongs to their order
-    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       isAuthenticated = true
-      if (sessionOrderId) {
-        const { data: order } = await supabase
-          .from('orders')
-          .select('orderer_id')
-          .eq('id', sessionOrderId)
-          .single()
-        if (!order || order.orderer_id !== user.id) {
-          return <FailurePage message="Payment session not found." href="/checkout" />
+
+      // Look up order via: session → payment_intent → payments → order_id
+      const piId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent?.id
+
+      if (piId) {
+        const { data: payment } = await supabase
+          .from('payments')
+          .select('order_id')
+          .eq('stripe_payment_intent_id', piId)
+          .maybeSingle()
+
+        if (payment?.order_id) {
+          sessionOrderId = payment.order_id
         }
       }
     }
@@ -73,8 +81,15 @@ export default async function CheckoutReturnPage({ searchParams }: Props) {
   }
 
   if (status === 'complete') {
-    const trackingHref = isAuthenticated && sessionOrderId ? `/order/${sessionOrderId}/chat` : '/'
-    const trackingLabel = isAuthenticated && sessionOrderId ? 'Track your order' : 'Back to home'
+    // Auth user with order found → direct tracking link
+    // Auth user without order → webhook may still be processing, link to orders list
+    // Guest → home
+    const trackingHref = isAuthenticated
+      ? (sessionOrderId ? `/order/${sessionOrderId}/chat` : '/orders')
+      : '/'
+    const trackingLabel = isAuthenticated
+      ? (sessionOrderId ? 'Track your order' : 'View your orders')
+      : 'Back to home'
 
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
@@ -91,9 +106,6 @@ export default async function CheckoutReturnPage({ searchParams }: Props) {
             </svg>
           </div>
           <h1 className="mb-2 text-xl font-semibold text-gray-900">Order placed!</h1>
-          <p className="text-sm text-gray-500">
-            We&apos;ll send you a text when a swiper picks up your order.
-          </p>
           <Link
             href={trackingHref}
             className="mt-6 inline-block w-full rounded-none bg-black py-3 text-sm font-semibold text-white hover:bg-gray-900"
