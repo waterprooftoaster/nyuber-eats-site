@@ -2,18 +2,18 @@
 
 import { useEffect, useRef } from 'react'
 import { useMessages } from '@/hooks/use-messages'
-import { ChatBanner } from '@/components/chat/chat-banner'
-import { ChatStatusMessages } from '@/components/chat/chat-status-messages'
 import { ChatThread } from '@/components/chat/chat-thread'
 import { ChatInput } from '@/components/chat/chat-input'
 import { CompletionBanner } from '@/components/chat/completion-banner'
+import { OrderCompletionNotice } from '@/components/chat/order-completion-notice'
+import type { OrderStatus } from '@/lib/types/database'
 
-const CLOSED_STATUSES = ['completed', 'paid', 'cancelled']
+const CLOSED_STATUSES: OrderStatus[] = ['completed', 'cancelled']
 
 interface Props {
   orderId: string
   currentUserId: string
-  orderStatus: string
+  orderStatus: OrderStatus
 }
 
 export function ChatView({ orderId, currentUserId, orderStatus }: Props) {
@@ -44,8 +44,6 @@ export function ChatView({ orderId, currentUserId, orderStatus }: Props) {
 
   return (
     <div className="flex h-full flex-col">
-      <ChatBanner status={orderStatus} />
-      <ChatStatusMessages status={orderStatus} />
       {conversation ? (
         <>
           <p className="px-4 py-2 text-xs text-gray-500 italic border-b border-gray-100">
@@ -63,8 +61,12 @@ export function ChatView({ orderId, currentUserId, orderStatus }: Props) {
       ) : (
         <div className="flex-1" />
       )}
-      {currentUserId === conversation?.swiper_id && orderStatus === 'in_progress' && (
-        <CompletionBanner orderId={orderId} />
+      {currentUserId === conversation?.swiper_id &&
+        orderStatus === 'in_progress' && (
+          <CompletionBanner orderId={orderId} />
+        )}
+      {orderStatus === 'completed' && currentUserId !== conversation?.swiper_id && (
+        <OrderCompletionNotice />
       )}
       <ChatInput orderId={orderId} onSend={sendMessage} disabled={isClosed || !conversation} />
     </div>

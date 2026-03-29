@@ -6,22 +6,9 @@ import { ChatView } from '@/components/chat/chat-view'
 import { ChevronUp, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const PANEL_WIDTH = 360
-const PANEL_GAP = 16
-const PANEL_MARGIN = 16
-
-// Pre-computed right-offset classes for up to 4 concurrent panels.
-// Tailwind JIT requires these to appear as static strings in source.
-const PANEL_RIGHT_CLASSES = [
-  'right-4',        // index 0: 16px  (rightmost = newest)
-  'right-[392px]',  // index 1: 16 + 360 + 16
-  'right-[768px]',  // index 2: 16 + 2*(360+16)
-  'right-[1144px]', // index 3: 16 + 3*(360+16)
-]
-
 interface PanelProps {
   entry: OrderEntry
-  /** 0 = newest/rightmost; also the one shown on mobile */
+  /** 0 = newest (bottom of stack); shown on mobile */
   index: number
   currentUserId: string
   onClose: (orderId: string) => void
@@ -31,15 +18,14 @@ interface PanelProps {
 function ChatPanelItem({ entry, index, currentUserId, onClose, onToggle }: PanelProps) {
   const { orderId, status, isExpanded } = entry
   const shortId = orderId.slice(0, 8)
-  const rightClass = PANEL_RIGHT_CLASSES[index] ?? `right-[${PANEL_MARGIN + index * (PANEL_WIDTH + PANEL_GAP)}px]`
   // Only the first (newest) panel is visible on mobile; all others are hidden
   const mobileClass = index === 0
-    ? 'max-sm:inset-x-0 max-sm:bottom-0 max-sm:right-0'
+    ? 'max-sm:w-full max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0 max-sm:border-t'
     : 'max-sm:hidden'
 
   if (!isExpanded) {
     return (
-      <div className={cn('fixed z-50 bottom-4', rightClass, mobileClass)}>
+      <div className={cn(mobileClass)}>
         <button
           onClick={() => onToggle(orderId)}
           className={cn(
@@ -57,11 +43,9 @@ function ChatPanelItem({ entry, index, currentUserId, onClose, onToggle }: Panel
   return (
     <div
       className={cn(
-        'fixed z-50 bottom-4 flex flex-col rounded-lg border border-gray-200 bg-white shadow-xl',
+        'flex flex-col rounded-lg border border-gray-200 bg-white shadow-xl',
         'w-[360px] h-[28rem]',
-        rightClass,
-        mobileClass,
-        index === 0 && 'max-sm:bottom-0 max-sm:w-full max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0 max-sm:border-t'
+        mobileClass
       )}
     >
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2.5">
@@ -102,11 +86,11 @@ export function ChatPanel({ currentUserId }: Props) {
   const panelList = Object.values(orders)
   if (panelList.length === 0) return null
 
-  // Reverse so newest order is at index 0 (rightmost on desktop, shown on mobile)
+  // Reverse so newest order is at index 0 (bottom of column on desktop, shown on mobile)
   const reversed = [...panelList].reverse()
 
   return (
-    <>
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-4 max-sm:inset-x-0 max-sm:bottom-0 max-sm:right-0">
       {reversed.map((entry, index) => (
         <ChatPanelItem
           key={entry.orderId}
@@ -117,6 +101,6 @@ export function ChatPanel({ currentUserId }: Props) {
           onToggle={toggleMinimize}
         />
       ))}
-    </>
+    </div>
   )
 }

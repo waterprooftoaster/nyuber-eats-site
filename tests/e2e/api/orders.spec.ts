@@ -25,7 +25,7 @@ test.describe('Guest order API', () => {
     })
     expect(res.status()).toBe(201)
     const body = await res.json()
-    expect(body.status).toBe('pending')
+    expect(body.status).toBe('open')
     expect(body.total_cents).toBeGreaterThan(0)
     expect(body.guest_name).toBe('Test Guest')
   })

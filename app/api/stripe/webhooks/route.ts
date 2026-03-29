@@ -88,14 +88,6 @@ export async function POST(request: NextRequest) {
         .eq('stripe_payment_intent_id', pi.id)
         .eq('status', 'pending')
 
-      // H-5: Allow all pre-paid statuses — checkout-session orders are 'pending'
-      // at payment time, not 'completed' (which is only for the post-completion flow)
-      await supabase
-        .from('orders')
-        .update({ status: 'paid' })
-        .eq('id', orderId)
-        .in('status', ['pending', 'accepted', 'in_progress', 'completed'])
-
       break
     }
 

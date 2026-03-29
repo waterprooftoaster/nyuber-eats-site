@@ -77,11 +77,9 @@ export interface MenuItemOption {
 }
 
 export type OrderStatus =
-  | 'pending'
-  | 'accepted'
+  | 'open'
   | 'in_progress'
   | 'completed'
-  | 'paid'
   | 'cancelled'
 
 export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded'

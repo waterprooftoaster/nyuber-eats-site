@@ -26,7 +26,7 @@ test.describe('Authenticated orders', () => {
     })
     expect(res.status()).toBe(201)
     const body = await res.json()
-    expect(body.status).toBe('pending')
+    expect(body.status).toBe('open')
     expect(body.orderer_id).toBeTruthy()
     expect(body.total_cents).toBeGreaterThan(0)
   })
