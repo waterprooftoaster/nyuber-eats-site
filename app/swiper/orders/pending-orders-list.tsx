@@ -82,7 +82,7 @@ export function PendingOrdersList({ orders: initialOrders }: Props) {
 
       {orders.length === 0 ? (
         <p className="text-sm text-gray-500 py-8 text-center">
-          No pending orders at your school right now. Check back soon.
+          No open orders at your school right now. Check back soon.
         </p>
       ) : (
         <ul className="divide-y divide-gray-100">

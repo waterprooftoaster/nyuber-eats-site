@@ -6,8 +6,8 @@ import { ChatPanelContext } from './chat-panel-context'
 import type { OrderEntry } from './chat-panel-context'
 import type { OrderStatus } from '@/lib/types/database'
 
-const TERMINAL_STATUSES: OrderStatus[] = ['paid', 'cancelled']
-const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'accepted', 'in_progress', 'completed']
+const TERMINAL_STATUSES: OrderStatus[] = ['cancelled']
+const ACTIVE_STATUSES: OrderStatus[] = ['open', 'in_progress', 'completed']
 
 interface Props {
   userId: string | null
@@ -23,7 +23,7 @@ export function ChatPanelProvider({ userId, children }: Props) {
     ordersRef.current = orders
   }, [orders])
 
-  const openPanel = useCallback((orderId: string, status: OrderStatus = 'pending') => {
+  const openPanel = useCallback((orderId: string, status: OrderStatus = 'open') => {
     setOrders((prev) => {
       if (prev[orderId]) return prev // idempotent — don't reset an already-open panel
       return { ...prev, [orderId]: { orderId, status, isExpanded: true } }
