@@ -26,6 +26,7 @@ export default async function StripeOnboardCompletePage() {
     try {
       const account = await getStripe().accounts.retrieve(stripeRow.stripe_account_id)
       if (account.details_submitted && account.charges_enabled) {
+        console.log(`[fallback-api] stripe sync: ${stripeRow.stripe_account_id}`)
         await serviceClient
           .from('stripe_accounts')
           .update({ onboarding_complete: true })

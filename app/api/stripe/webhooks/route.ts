@@ -196,6 +196,7 @@ export async function POST(request: NextRequest) {
                     .maybeSingle()
                 if (!existing) break
 
+                console.log(`[webhook] account.updated: ${account.id}`)
                 await supabase
                     .from('stripe_accounts')
                     .update({ onboarding_complete: true })
